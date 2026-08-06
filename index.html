@@ -45,6 +45,8 @@
   .chips{display:flex;gap:8px;flex-wrap:wrap}
   .chip{width:34px;height:34px;border-radius:9px;border:2px solid transparent;cursor:pointer;position:relative}
   .chip.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+  .auto-chip{box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+  .auto-chip.on{box-shadow:0 0 0 2px var(--accent),inset 0 0 0 1px rgba(255,255,255,.35)}
 
   .logo-drop{
     border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;
@@ -64,6 +66,8 @@
   .b-ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
   .note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:14px}
   .note a{color:var(--accent)}
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.5}
+  .hint strong{color:var(--ink)}
 
   .nfc-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
   .b-nfc{width:100%;border:0;border-radius:11px;padding:13px;font-weight:700;font-size:14px;
@@ -281,6 +285,7 @@
     <div class="group">
       <label>Tema de color</label>
       <div class="chips" id="themes"></div>
+      <p class="hint" style="margin-top:8px">Al subir un logo se crea un tema <strong>Auto</strong> con sus colores (primer recuadro). Puedes elegir otro cuando quieras.</p>
     </div>
 
     <div class="btns">
@@ -369,6 +374,7 @@
   ];
   var card=document.getElementById('card');
   var themeIdx=0;
+  var autoTheme=null;
 
   function applyTheme(t){
     card.style.setProperty('--c-bg',t.bg);
@@ -392,6 +398,82 @@
       box.appendChild(c);
     });
   })();
+
+  /* ---------- Auto theme from logo colors ---------- */
+  function rgbToHsl(r,g,b){
+    r/=255;g/=255;b/=255;
+    var mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2;
+    if(mx!==mn){var d=mx-mn; s=l>0.5?d/(2-mx-mn):d/(mx+mn);
+      if(mx===r)h=(g-b)/d+(g<b?6:0); else if(mx===g)h=(b-r)/d+2; else h=(r-g)/d+4;
+      h*=60;}
+    return {h:h,s:s,l:l};
+  }
+  function hslCss(h,s,l){return 'hsl('+Math.round(h)+','+Math.round(s*100)+'%,'+Math.round(l*100)+'%)';}
+
+  function themeFromAccent(accent){
+    var h,s,l;
+    if(accent){var a=rgbToHsl(accent.r,accent.g,accent.b);h=a.h;s=a.s;l=a.l;}
+    else{h=41;s=.5;l=.5;} // gold fallback for greyscale logos
+    var accCss=hslCss(h, Math.min(.9,Math.max(s,.45)), Math.min(.72,Math.max(l,.5)));
+    var bg =hslCss(h,.30,.085);
+    var mut=hslCss(h,.14,.63);
+    return {name:'Auto',bg:bg,ink:'#f7f8fa',mut:mut,accent:accCss,
+      swatch:'linear-gradient(135deg,'+bg+' 42%,'+accCss+')'};
+  }
+
+  function extractPalette(dataUrl,cb){
+    var img=new Image();
+    img.onload=function(){
+      var N=72,c=document.createElement('canvas');c.width=N;c.height=N;
+      var ctx=c.getContext('2d');ctx.drawImage(img,0,0,N,N);
+      var d; try{ d=ctx.getImageData(0,0,N,N).data; }catch(e){ cb(themeFromAccent(null)); return; }
+      var map={};
+      for(var i=0;i<d.length;i+=4){
+        var r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
+        if(a<125) continue;
+        var key=(r>>4)+'-'+(g>>4)+'-'+(b>>4);
+        var m=map[key]||(map[key]={r:0,g:0,b:0,n:0});
+        m.r+=r;m.g+=g;m.b+=b;m.n++;
+      }
+      var accent=null,best=-1;
+      for(var k in map){
+        var m=map[k],col={r:m.r/m.n,g:m.g/m.n,b:m.b/m.n,n:m.n};
+        var hsl=rgbToHsl(col.r,col.g,col.b);
+        if(hsl.l<.12||hsl.l>.9) continue;   // skip near black/white
+        if(hsl.s<.18) continue;             // skip greys
+        var score=hsl.s*Math.sqrt(col.n)*(1-Math.abs(hsl.l-.5));
+        if(score>best){best=score;accent=col;}
+      }
+      cb(themeFromAccent(accent));
+    };
+    img.onerror=function(){cb(themeFromAccent(null))};
+    img.src=dataUrl;
+  }
+
+  function setAutoTheme(theme){
+    autoTheme=theme;
+    var box=document.getElementById('themes');
+    var chip=document.getElementById('autoChip');
+    if(!chip){
+      chip=document.createElement('div');chip.id='autoChip';chip.className='chip auto-chip';
+      chip.title='Colores del logo';
+      chip.onclick=function(){
+        document.querySelectorAll('#themes .chip').forEach(function(el){el.classList.remove('on')});
+        chip.classList.add('on'); applyTheme(autoTheme);
+      };
+      box.insertBefore(chip,box.firstChild);
+    }
+    chip.style.background=theme.swatch;
+    document.querySelectorAll('#themes .chip').forEach(function(el){el.classList.remove('on')});
+    chip.classList.add('on');
+    applyTheme(theme);
+  }
+  function clearAutoTheme(){
+    var chip=document.getElementById('autoChip'); if(chip) chip.remove(); autoTheme=null;
+    var first=document.querySelector('#themes .chip');
+    document.querySelectorAll('#themes .chip').forEach(function(el){el.classList.remove('on')});
+    if(first){first.classList.add('on');} themeIdx=0; applyTheme(THEMES[0]);
+  }
 
   /* ---------- Mode ---------- */
   var mode="both";
@@ -459,6 +541,7 @@
     var r=new FileReader();
     r.onload=function(e){
       currentLogoData=e.target.result; applyLogo();
+      extractPalette(currentLogoData,function(theme){ setAutoTheme(theme); }); // card adopts logo colors
       document.getElementById('dropTxt').textContent="Logo cargado ✓";
       document.getElementById('logoActions').style.display='flex';
       document.getElementById('logoFit').style.display='block';
@@ -483,6 +566,7 @@
     document.getElementById('dropTxt').textContent="Arrastra o haz clic para subir tu logo (PNG/JPG)";
     document.getElementById('logoActions').style.display='none';
     document.getElementById('logoFit').style.display='none';
+    clearAutoTheme();
   };
 
   /* auto-monogram from business name */

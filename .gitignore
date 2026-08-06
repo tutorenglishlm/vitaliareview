@@ -2,3 +2,4 @@ node_modules/
 .vercel/
 .gh_token
 .DS_Store
+.vercel

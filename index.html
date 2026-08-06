@@ -52,6 +52,8 @@
   }
   .logo-drop:hover{border-color:var(--accent);color:var(--ink)}
   .logo-drop input{display:none}
+  .logo-fit{margin-top:8px}
+  .seg-sm button{font-size:12px;padding:8px 6px}
   .logo-actions{display:flex;gap:8px;margin-top:8px}
   .mini{font-size:12px;color:var(--muted);background:none;border:1px solid var(--line);
     padding:6px 10px;border-radius:8px;cursor:pointer;font-family:inherit}
@@ -237,6 +239,12 @@
         <span id="dropTxt">Arrastra o haz clic para subir tu logo (PNG/JPG)</span>
         <input type="file" id="logoInput" accept="image/*" />
       </label>
+      <div class="logo-fit" id="logoFit" style="display:none">
+        <div class="seg seg-sm" id="fitSeg">
+          <button data-fit="contain" class="on">Ajustar (todo el logo)</button>
+          <button data-fit="cover">Rellenar</button>
+        </div>
+      </div>
       <div class="logo-actions" id="logoActions" style="display:none">
         <button class="mini" id="removeLogo">Quitar logo</button>
       </div>
@@ -415,21 +423,62 @@
   var logoInput=document.getElementById('logoInput'),
       cLogo=document.getElementById('c-logo'),
       drop=document.getElementById('drop');
+  var currentLogoData=null, fitMode="contain";
+
+  /* Resize any uploaded logo into a clean square thumbnail that fits the slot.
+     contain = whole logo visible with padding · cover = fill & crop */
+  function makeThumb(dataUrl,mode,cb){
+    var img=new Image();
+    img.onload=function(){
+      var S=256, c=document.createElement('canvas'); c.width=S; c.height=S;
+      var ctx=c.getContext('2d'); ctx.clearRect(0,0,S,S);
+      ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+      var scale,w,h;
+      if(mode==='cover'){ scale=Math.max(S/img.width,S/img.height); }
+      else{ scale=Math.min((S*0.84)/img.width,(S*0.84)/img.height); } // contain + padding
+      w=img.width*scale; h=img.height*scale;
+      ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
+      cb(c.toDataURL('image/png'));
+    };
+    img.onerror=function(){cb(dataUrl)};
+    img.src=dataUrl;
+  }
+  function applyLogo(){
+    if(!currentLogoData)return;
+    makeThumb(currentLogoData,fitMode,function(thumb){
+      cLogo.style.backgroundImage="url("+thumb+")"; cLogo.classList.add('has-img');
+    });
+  }
   function loadFile(f){
-    if(!f)return; var r=new FileReader();
-    r.onload=function(e){ cLogo.style.backgroundImage="url("+e.target.result+")"; cLogo.classList.add('has-img');
+    if(!f)return;
+    if(!/^image\//.test(f.type)){ document.getElementById('dropTxt').textContent="Archivo no válido — usa PNG/JPG"; return; }
+    var r=new FileReader();
+    r.onload=function(e){
+      currentLogoData=e.target.result; applyLogo();
       document.getElementById('dropTxt').textContent="Logo cargado ✓";
-      document.getElementById('logoActions').style.display='flex'; };
+      document.getElementById('logoActions').style.display='flex';
+      document.getElementById('logoFit').style.display='block';
+    };
     r.readAsDataURL(f);
   }
   logoInput.onchange=function(){loadFile(this.files[0])};
   drop.addEventListener('dragover',function(e){e.preventDefault();drop.style.borderColor='#4285F4'});
   drop.addEventListener('dragleave',function(){drop.style.borderColor=''});
   drop.addEventListener('drop',function(e){e.preventDefault();drop.style.borderColor='';loadFile(e.dataTransfer.files[0])});
+
+  document.querySelectorAll('#fitSeg button').forEach(function(b){
+    b.onclick=function(){
+      fitMode=b.dataset.fit;
+      document.querySelectorAll('#fitSeg button').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on'); applyLogo();
+    };
+  });
+
   document.getElementById('removeLogo').onclick=function(){
-    cLogo.classList.remove('has-img');cLogo.style.backgroundImage='';logoInput.value='';
+    currentLogoData=null; cLogo.classList.remove('has-img'); cLogo.style.backgroundImage=''; logoInput.value='';
     document.getElementById('dropTxt').textContent="Arrastra o haz clic para subir tu logo (PNG/JPG)";
     document.getElementById('logoActions').style.display='none';
+    document.getElementById('logoFit').style.display='none';
   };
 
   /* auto-monogram from business name */

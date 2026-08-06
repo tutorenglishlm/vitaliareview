@@ -82,7 +82,7 @@
 
   .card{
     --c-bg:#101418; --c-ink:#f6f7f9; --c-mut:#9aa2ad; --c-accent:#c9a24b;
-    width:360px;height:516px;                 /* 85.6 x 122mm — tall card */
+    width:360px;min-height:516px;             /* tall card — grows to fit content, never clips */
     color:var(--c-ink);
     background:
       radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,.10), transparent 55%),
@@ -210,7 +210,7 @@
     /* keep natural design size (360x516) and scale uniformly to real card size
        so print matches the preview exactly and nothing clips.
        0.9 * 360px = 85.7mm wide, 0.9 * 516px = 122.9mm tall */
-    .card{box-shadow:none;width:360px;height:516px;border-radius:16px;
+    .card{box-shadow:none;width:360px;height:auto;border-radius:16px;
       transform:scale(.9)!important;transform-origin:top left;
       -webkit-print-color-adjust:exact;print-color-adjust:exact}
     .card .rim{border-color:rgba(0,0,0,.12)}

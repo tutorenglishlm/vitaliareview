@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Google Review Cards — Diseñador</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0f13; --panel:#161922; --panel2:#1d212c; --line:#2a2f3a;
+    --ink:#eef0f4; --muted:#9aa0ab; --accent:#4285F4; --gold:#fbbc05;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1200px 700px at 80% -10%,#1a2030 0,var(--bg) 60%);
+    color:var(--ink);min-height:100vh;
+  }
+
+  .wrap{display:grid;grid-template-columns:380px 1fr;gap:0;min-height:100vh}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr}}
+
+  /* ---------- Controls ---------- */
+  .panel{
+    background:var(--panel);border-right:1px solid var(--line);
+    padding:26px 22px 60px;overflow-y:auto;
+  }
+  .panel h1{font-size:18px;margin:0 0 3px;letter-spacing:-.01em}
+  .panel .sub{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 22px}
+  .group{margin-bottom:20px}
+  .group>label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:8px;font-weight:700}
+  input[type=text],input[type=url],select{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    border-radius:11px;padding:11px 12px;font-size:14px;outline:none;font-family:inherit;
+  }
+  input:focus,select:focus{border-color:var(--accent)}
+
+  /* segmented + chip toggles */
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--muted);font-family:inherit;
+    font-weight:600;font-size:13px;padding:9px 8px;border-radius:9px;cursor:pointer;transition:.15s}
+  .seg button.on{background:var(--accent);color:#fff}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{width:34px;height:34px;border-radius:9px;border:2px solid transparent;cursor:pointer;position:relative}
+  .chip.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+
+  .logo-drop{
+    border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;
+    color:var(--muted);font-size:13px;cursor:pointer;transition:.15s;background:var(--panel2)
+  }
+  .logo-drop:hover{border-color:var(--accent);color:var(--ink)}
+  .logo-drop input{display:none}
+  .logo-actions{display:flex;gap:8px;margin-top:8px}
+  .mini{font-size:12px;color:var(--muted);background:none;border:1px solid var(--line);
+    padding:6px 10px;border-radius:8px;cursor:pointer;font-family:inherit}
+
+  .btns{display:flex;gap:10px;margin-top:8px}
+  .btns button{flex:1;border:0;border-radius:11px;padding:13px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+  .b-print{background:var(--accent);color:#fff}
+  .b-ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  .note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:14px}
+  .note a{color:var(--accent)}
+
+  .nfc-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+  .b-nfc{width:100%;border:0;border-radius:11px;padding:13px;font-weight:700;font-size:14px;
+    cursor:pointer;font-family:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);transition:.15s}
+  .b-nfc:hover{border-color:var(--accent)}
+  .b-nfc.busy{background:var(--accent);color:#fff;animation:pulse 1.1s ease-in-out infinite}
+  .b-nfc:disabled{opacity:.5;cursor:not-allowed}
+  @keyframes pulse{50%{opacity:.65}}
+  .nfc-status{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
+  .nfc-status.ok{color:#34a853}
+  .nfc-status.err{color:#ea4335}
+
+  /* ---------- Stage / Card ---------- */
+  .stage{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px}
+  .stage .cap{color:var(--muted);font-size:12px}
+
+  .card{
+    --c-bg:#101418; --c-ink:#f6f7f9; --c-mut:#9aa2ad; --c-accent:#c9a24b;
+    width:360px;height:516px;                 /* 85.6 x 122mm — tall card */
+    color:var(--c-ink);
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,.10), transparent 55%),
+      linear-gradient(158deg, rgba(255,255,255,.06), rgba(0,0,0,.10) 60%),
+      var(--c-bg);
+    border-radius:22px;padding:30px 28px 24px;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;
+    box-shadow:0 42px 90px -22px rgba(0,0,0,.7), 0 3px 8px rgba(0,0,0,.45);
+    font-family:"Manrope",sans-serif;isolation:isolate;
+    transform:perspective(1100px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
+    transition:transform .25s cubic-bezier(.2,.7,.2,1);
+    will-change:transform;
+  }
+  /* engraved diagonal hairlines + fine film grain */
+  .card::before{
+    content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
+    background-image:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.035) 0 1px, transparent 1px 10px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.05) 0 1px, transparent 1px 10px),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+    background-size:auto,auto,160px 160px;
+    opacity:.55;mix-blend-mode:overlay;
+  }
+  /* accent glow + moving sheen */
+  .card .glow{position:absolute;width:300px;height:300px;border-radius:50%;z-index:0;
+    background:radial-gradient(circle,var(--c-accent),transparent 66%);opacity:.20;
+    top:-140px;right:-100px;pointer-events:none;filter:blur(4px)}
+  .card .sheen{position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;
+    background:radial-gradient(340px 340px at var(--mx,30%) var(--my,0%), rgba(255,255,255,.14), transparent 60%);
+    opacity:0;transition:opacity .3s}
+  .card:hover .sheen{opacity:1}
+  .card .rim{position:absolute;inset:0;z-index:4;border-radius:22px;pointer-events:none;
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18), inset 0 0 0 1px rgba(0,0,0,.15)}
+
+  .head,.body,.foot{position:relative;z-index:1;width:100%}
+  .head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px}
+
+  /* logo slot: shows uploaded image OR an auto monogram */
+  .logo{width:66px;height:66px;border-radius:16px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    background:linear-gradient(155deg, color-mix(in srgb,var(--c-accent) 26%, transparent), rgba(255,255,255,.04));
+    box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 8px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
+    background-size:cover;background-position:center}
+  .logo .mono{font-family:"Fraunces",serif;font-weight:600;font-size:26px;color:var(--c-ink);letter-spacing:.02em}
+  .logo.has-img .mono{display:none}
+
+  .kicker{font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--c-accent);font-weight:700;
+    display:flex;align-items:center;gap:8px}
+  .kicker::before,.kicker::after{content:"";width:16px;height:1px;background:currentColor;opacity:.6}
+  .biz{font-family:"Fraunces",serif;font-weight:600;font-size:27px;line-height:1.05;letter-spacing:-.015em}
+  .stars{color:var(--gold);font-size:17px;letter-spacing:4px;margin-top:1px}
+
+  /* ornamental divider */
+  .rule{display:flex;align-items:center;justify-content:center;gap:9px;width:64%;color:var(--c-accent);margin:2px 0}
+  .rule::before,.rule::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,currentColor,transparent);opacity:.55}
+  .rule i{width:5px;height:5px;transform:rotate(45deg);background:currentColor;flex:0 0 auto}
+
+  .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px}
+  .msg{width:100%}
+  .headline{font-family:"Fraunces",serif;font-style:italic;font-weight:500;font-size:18px;line-height:1.32;margin:0 0 12px;color:var(--c-ink)}
+  .action{display:inline-flex;justify-content:center;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--c-mut)}
+  .action .badge{display:inline-flex;align-items:center;gap:6px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
+    padding:6px 11px;border-radius:999px;color:var(--c-ink);font-size:10.5px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+  .action svg{width:14px;height:14px}
+
+  /* QR with scan-frame corner brackets */
+  .qrwrap{flex:0 0 auto;display:none;flex-direction:column;align-items:center;gap:9px}
+  .qrwrap.show{display:flex}
+  .qrframe{position:relative;padding:13px}
+  .qrframe .cr{position:absolute;width:18px;height:18px;border:2px solid var(--c-accent);opacity:.9}
+  .qrframe .tl{top:0;left:0;border-right:0;border-bottom:0;border-top-left-radius:7px}
+  .qrframe .tr{top:0;right:0;border-left:0;border-bottom:0;border-top-right-radius:7px}
+  .qrframe .bl{bottom:0;left:0;border-right:0;border-top:0;border-bottom-left-radius:7px}
+  .qrframe .br{bottom:0;right:0;border-left:0;border-top:0;border-bottom-right-radius:7px}
+  .qr{width:146px;height:146px;background:#fff;border-radius:12px;padding:9px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 24px rgba(0,0,0,.35)}
+  .qr img,.qr canvas{width:100%!important;height:100%!important}
+  .qrlabel{font-size:9.5px;color:var(--c-mut);letter-spacing:.22em;text-transform:uppercase;font-weight:700}
+
+  .foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;
+    padding-top:14px;border-top:1px solid rgba(255,255,255,.09)}
+  .gline{font-size:11px;color:var(--c-mut);display:flex;align-items:center;gap:5px}
+  .g{font-weight:800;font-size:12.5px;font-family:"Manrope",sans-serif;
+    background:linear-gradient(90deg,#4285F4 0 25%,#ea4335 25% 50%,#fbbc05 50% 75%,#34a853 75%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .nfc-ring{display:none;align-items:center;gap:6px;font-size:10.5px;color:var(--c-mut);font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase}
+  .nfc-ring.show{display:flex}
+  .nfc-ring svg{width:15px;height:15px}
+
+  /* tap-only large centered layout */
+  .card.mode-tap .body{justify-content:center}
+  .card.mode-tap .tapbig{display:flex}
+  .tapbig{display:none;flex-direction:column;align-items:center;gap:14px}
+  .tapbig .ripple{width:96px;height:96px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 50% 40%, color-mix(in srgb,var(--c-accent) 92%, white), var(--c-accent));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 30px color-mix(in srgb,var(--c-accent) 45%, transparent)}
+  .tapbig .ripple::before,.tapbig .ripple::after{content:"";position:absolute;inset:0;border-radius:50%;
+    border:2px solid var(--c-accent);animation:ping 2.2s ease-out infinite}
+  .tapbig .ripple::after{animation-delay:1.1s}
+  @keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.9);opacity:0}}
+  .tapbig .ripple svg{width:44px;height:44px;color:var(--c-bg);position:relative;z-index:1}
+  .tapbig .tapmsg{font-family:"Fraunces",serif;font-style:italic;font-weight:500;font-size:16px;max-width:230px;line-height:1.35}
+
+  /* staggered load-in */
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .card .head{animation:rise .55s .05s both}
+  .card .body{animation:rise .55s .16s both}
+  .card .foot{animation:rise .55s .27s both}
+  @media (prefers-reduced-motion:reduce){
+    .card,.card .head,.card .body,.card .foot{animation:none;transition:none;transform:none}
+    .tapbig .ripple::before,.tapbig .ripple::after{animation:none}
+  }
+
+  /* ---------- Print ---------- */
+  @media print{
+    body{background:#fff}
+    .panel,.stage .cap{display:none!important}
+    .wrap{display:block}
+    .stage{padding:0;display:block}
+    .card{box-shadow:none;width:85.6mm;height:122mm;border-radius:3mm;transform:none!important;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .card .rim{border-color:rgba(0,0,0,.12)}
+    .card .sheen{display:none}
+    .card .head,.card .body,.card .foot{animation:none!important}
+    @page{margin:14mm}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- CONTROLS -->
+  <aside class="panel">
+    <h1>Google Review Cards</h1>
+    <p class="sub">Diseña tu tarjeta, sube tu logo y elige entre QR, Tap (NFC) o ambos. Imprime a tamaño real.</p>
+
+    <div class="group">
+      <label>Modo de la tarjeta</label>
+      <div class="seg" id="mode">
+        <button data-mode="both" class="on">QR + Tap</button>
+        <button data-mode="qr">Solo QR</button>
+        <button data-mode="tap">Solo Tap</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label>Logo</label>
+      <label class="logo-drop" id="drop">
+        <span id="dropTxt">Arrastra o haz clic para subir tu logo (PNG/JPG)</span>
+        <input type="file" id="logoInput" accept="image/*" />
+      </label>
+      <div class="logo-actions" id="logoActions" style="display:none">
+        <button class="mini" id="removeLogo">Quitar logo</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label>Nombre del negocio</label>
+      <input type="text" id="biz" value="La Mar de Cortés" />
+    </div>
+
+    <div class="group">
+      <label>Frase / llamado</label>
+      <input type="text" id="headline" value="¿Disfrutaste tu visita? Cuéntanos con una reseña." />
+    </div>
+
+    <div class="group">
+      <label>Enlace de reseña de Google</label>
+      <input type="url" id="link" placeholder="https://g.page/r/XXXX/review" />
+    </div>
+
+    <div class="group">
+      <label>Estrellas</label>
+      <select id="stars">
+        <option value="5" selected>★★★★★ (5)</option>
+        <option value="4">★★★★ (4)</option>
+        <option value="0">Sin estrellas</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label>Tema de color</label>
+      <div class="chips" id="themes"></div>
+    </div>
+
+    <div class="btns">
+      <button class="b-print" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="b-ghost" id="dlQR">⬇️ QR PNG</button>
+    </div>
+
+    <div class="group nfc-box">
+      <label>Escribir chip NFC</label>
+      <button class="b-nfc" id="nfcWrite">📶 Grabar enlace en chip NFC</button>
+      <div class="nfc-status" id="nfcStatus">Acerca un chip NTAG al teléfono y pulsa grabar.</div>
+    </div>
+
+    <p class="note">
+      <strong>Tip:</strong> consigue tu enlace en tu Perfil de Empresa de Google → “Pedir reseñas”.
+      El grabado NFC funciona solo en <strong>Chrome para Android</strong> y desde una página <strong>HTTPS</strong>
+      (súbela a Vercel). Los iPhone no pueden grabar chips desde el navegador.
+    </p>
+  </aside>
+
+  <!-- STAGE -->
+  <main class="stage">
+    <div class="card mode-both" id="card">
+      <div class="glow"></div><div class="sheen"></div><div class="rim"></div>
+
+      <div class="head">
+        <div class="logo" id="c-logo"><span class="mono" id="c-mono">L</span></div>
+        <div class="kicker">Reseña Google</div>
+        <div class="biz" id="c-biz">La Mar de Cortés</div>
+        <div class="stars" id="c-stars">★★★★★</div>
+      </div>
+
+      <div class="body">
+        <div class="rule"><i></i></div>
+        <div class="msg">
+          <p class="headline" id="c-headline">¿Disfrutaste tu visita? Cuéntanos con una reseña.</p>
+          <span class="action" id="c-action">
+            <span class="badge" id="badge-qr">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M17 20h.01M20 17v4"/></svg>
+              Escanea
+            </span>
+            <span class="badge" id="badge-tap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0M9 10a3 3 0 0 1 6 0M12 12v6"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+              Acerca tu teléfono
+            </span>
+          </span>
+        </div>
+
+        <div class="qrwrap show" id="c-qrwrap">
+          <div class="qrframe">
+            <span class="cr tl"></span><span class="cr tr"></span><span class="cr bl"></span><span class="cr br"></span>
+            <div class="qr" id="qr"></div>
+          </div>
+          <div class="qrlabel">Escanea para calificarnos</div>
+        </div>
+
+        <div class="tapbig">
+          <div class="ripple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0M9 10a3 3 0 0 1 6 0M12 12v6"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+          </div>
+          <div class="tapmsg">Acerca tu teléfono para dejar tu reseña</div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <span class="gline">Reseña en <span class="g">Google</span></span>
+        <span class="nfc-ring" id="c-nfc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9a10 10 0 0 1 16 0M7 12a6 6 0 0 1 10 0M10 15a2 2 0 0 1 4 0"/></svg>
+          NFC
+        </span>
+      </div>
+    </div>
+    <div class="cap">Vista previa · al imprimir sale a 85.6 × 54 mm (tamaño tarjeta)</div>
+  </main>
+</div>
+
+<script>
+  /* ---------- Themes ---------- */
+  var THEMES=[
+    {name:"Onyx & Oro",   bg:"#101418", ink:"#f6f7f9", mut:"#9aa2ad", accent:"#c9a24b", swatch:"linear-gradient(135deg,#101418,#c9a24b)"},
+    {name:"Marfil",       bg:"#f7f4ee", ink:"#20242b", mut:"#6b7280", accent:"#c1440e", swatch:"linear-gradient(135deg,#f7f4ee,#c1440e)"},
+    {name:"Teal Costero", bg:"#0e2a2e", ink:"#f2fbfa", mut:"#8fb3b1", accent:"#2ec4b6", swatch:"linear-gradient(135deg,#0e2a2e,#2ec4b6)"},
+    {name:"Vino",         bg:"#1a0f14", ink:"#f7eef0", mut:"#b498a0", accent:"#b0472f", swatch:"linear-gradient(135deg,#1a0f14,#b0472f)"},
+    {name:"Google",       bg:"#ffffff", ink:"#20242b", mut:"#5f6368", accent:"#4285F4", swatch:"linear-gradient(135deg,#4285F4,#34a853,#fbbc05,#ea4335)"},
+    {name:"Bosque",       bg:"#0f1a12", ink:"#eef7ef", mut:"#9bb3a0", accent:"#8bc34a", swatch:"linear-gradient(135deg,#0f1a12,#8bc34a)"}
+  ];
+  var card=document.getElementById('card');
+  var themeIdx=0;
+
+  function applyTheme(t){
+    card.style.setProperty('--c-bg',t.bg);
+    card.style.setProperty('--c-ink',t.ink);
+    card.style.setProperty('--c-mut',t.mut);
+    card.style.setProperty('--c-accent',t.accent);
+    // regenerate QR with dark color matching ink for contrast on light themes handled by fixed dark
+    renderQR(document.getElementById('link').value, t);
+  }
+  (function buildThemes(){
+    var box=document.getElementById('themes');
+    THEMES.forEach(function(t,i){
+      var c=document.createElement('div');
+      c.className='chip'+(i===0?' on':'');
+      c.style.background=t.swatch; c.title=t.name;
+      c.onclick=function(){
+        themeIdx=i;
+        document.querySelectorAll('#themes .chip').forEach(function(el){el.classList.remove('on')});
+        c.classList.add('on'); applyTheme(t);
+      };
+      box.appendChild(c);
+    });
+  })();
+
+  /* ---------- Mode ---------- */
+  var mode="both";
+  document.querySelectorAll('#mode button').forEach(function(b){
+    b.onclick=function(){
+      mode=b.dataset.mode;
+      document.querySelectorAll('#mode button').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on'); applyMode();
+    };
+  });
+  function applyMode(){
+    card.className='card mode-'+mode;
+    var qrOn = mode==='both'||mode==='qr';
+    var tapOn= mode==='both'||mode==='tap';
+    document.getElementById('c-qrwrap').classList.toggle('show',qrOn && mode!=='tap');
+    document.getElementById('badge-qr').style.display = (mode==='qr')?'inline-flex':'none';
+    document.getElementById('badge-tap').style.display= (mode==='tap' || mode==='both')?'inline-flex':'none';
+    // in 'both' the QR shows on right and a small tap badge on left message
+    if(mode==='qr'){ document.getElementById('badge-tap').style.display='none';
+                     document.getElementById('badge-qr').style.display='inline-flex'; }
+    if(mode==='both'){ document.getElementById('badge-qr').style.display='none'; }
+    document.getElementById('c-nfc').classList.toggle('show',tapOn);
+  }
+
+  /* ---------- QR ---------- */
+  function renderQR(url,t){
+    var box=document.getElementById('qr'); box.innerHTML="";
+    var val=url&&url.trim()?url.trim():"https://google.com";
+    new QRCode(box,{text:val,width:200,height:200,colorDark:"#101418",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+  }
+
+  /* ---------- Logo ---------- */
+  var logoInput=document.getElementById('logoInput'),
+      cLogo=document.getElementById('c-logo'),
+      drop=document.getElementById('drop');
+  function loadFile(f){
+    if(!f)return; var r=new FileReader();
+    r.onload=function(e){ cLogo.style.backgroundImage="url("+e.target.result+")"; cLogo.classList.add('has-img');
+      document.getElementById('dropTxt').textContent="Logo cargado ✓";
+      document.getElementById('logoActions').style.display='flex'; };
+    r.readAsDataURL(f);
+  }
+  logoInput.onchange=function(){loadFile(this.files[0])};
+  drop.addEventListener('dragover',function(e){e.preventDefault();drop.style.borderColor='#4285F4'});
+  drop.addEventListener('dragleave',function(){drop.style.borderColor=''});
+  drop.addEventListener('drop',function(e){e.preventDefault();drop.style.borderColor='';loadFile(e.dataTransfer.files[0])});
+  document.getElementById('removeLogo').onclick=function(){
+    cLogo.classList.remove('has-img');cLogo.style.backgroundImage='';logoInput.value='';
+    document.getElementById('dropTxt').textContent="Arrastra o haz clic para subir tu logo (PNG/JPG)";
+    document.getElementById('logoActions').style.display='none';
+  };
+
+  /* auto-monogram from business name */
+  function initials(name){
+    var w=(name||"").trim().split(/\s+/).filter(function(x){return x.length});
+    if(!w.length) return "★";
+    if(w.length===1) return w[0].slice(0,2).toUpperCase();
+    return (w[0][0]+w[w.length-1][0]).toUpperCase();
+  }
+
+  /* ---------- Text sync ---------- */
+  function starsStr(n){return "★".repeat(n)+"☆".repeat(5-n)}
+  function sync(){
+    var name=document.getElementById('biz').value||"Tu Negocio";
+    document.getElementById('c-biz').textContent=name;
+    document.getElementById('c-mono').textContent=initials(name);
+    document.getElementById('c-headline').textContent=document.getElementById('headline').value;
+    var s=parseInt(document.getElementById('stars').value,10);
+    var el=document.getElementById('c-stars');
+    el.style.display=s>0?'block':'none'; if(s>0)el.textContent=starsStr(s);
+    renderQR(document.getElementById('link').value,THEMES[themeIdx]);
+  }
+  ['biz','headline','link','stars'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',sync);
+    document.getElementById(id).addEventListener('change',sync);
+  });
+
+  /* ---------- Download QR ---------- */
+  document.getElementById('dlQR').onclick=function(){
+    var canvas=document.querySelector('#qr canvas'),img=document.querySelector('#qr img');
+    if(!canvas&&!img){alert("Pon el enlace primero para generar el QR.");return;}
+    var data=canvas?canvas.toDataURL("image/png"):img.src;
+    var a=document.createElement('a');a.href=data;a.download="google-review-qr.png";a.click();
+  };
+
+  /* ---------- NFC writer (Web NFC API) ---------- */
+  var nfcBtn=document.getElementById('nfcWrite'),
+      nfcStatus=document.getElementById('nfcStatus');
+  function setNfc(msg,cls){ nfcStatus.textContent=msg; nfcStatus.className='nfc-status'+(cls?' '+cls:''); }
+
+  if(!('NDEFReader' in window)){
+    nfcBtn.disabled=true;
+    setNfc("Tu navegador no soporta grabado NFC. Usa Chrome en Android (con HTTPS).",'err');
+  }
+
+  nfcBtn.addEventListener('click',async function(){
+    var url=document.getElementById('link').value.trim();
+    if(!url){ setNfc("Primero pon tu enlace de reseña de Google arriba.",'err'); return; }
+    if(!/^https?:\/\//i.test(url)){ url='https://'+url; }
+    if(!('NDEFReader' in window)){
+      setNfc("Grabado NFC no disponible en este dispositivo/navegador.",'err'); return;
+    }
+    try{
+      nfcBtn.classList.add('busy'); nfcBtn.textContent="📶 Acerca el chip al teléfono…";
+      setNfc("Esperando el chip… manténlo pegado a la parte trasera del teléfono.",'');
+      var ndef=new NDEFReader();
+      await ndef.write({ records:[{ recordType:"url", data:url }] });
+      setNfc("✓ ¡Chip grabado! Pruébalo acercando el teléfono.",'ok');
+      nfcBtn.textContent="✓ Chip grabado — grabar otro";
+    }catch(e){
+      var m=e && e.message ? e.message : e;
+      if(e && e.name==='NotAllowedError') m="Permiso denegado. Debes permitir NFC y estar en HTTPS.";
+      setNfc("No se pudo grabar: "+m,'err');
+      nfcBtn.textContent="📶 Grabar enlace en chip NFC";
+    }finally{
+      nfcBtn.classList.remove('busy');
+      setTimeout(function(){ if(!nfcBtn.classList.contains('busy')&&nfcBtn.textContent.indexOf('grabado')===-1) nfcBtn.textContent="📶 Grabar enlace en chip NFC"; },100);
+    }
+  });
+
+  /* ---------- Interactive tilt + sheen (preview only) ---------- */
+  var stage=document.querySelector('.stage'),
+      reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if(!reduce){
+    stage.addEventListener('pointermove',function(e){
+      var r=card.getBoundingClientRect();
+      var px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+      card.style.setProperty('--ry',((px-.5)*10).toFixed(2)+'deg');
+      card.style.setProperty('--rx',((.5-py)*10).toFixed(2)+'deg');
+      card.style.setProperty('--mx',(px*100).toFixed(1)+'%');
+      card.style.setProperty('--my',(py*100).toFixed(1)+'%');
+    });
+    stage.addEventListener('pointerleave',function(){
+      card.style.setProperty('--ry','0deg');card.style.setProperty('--rx','0deg');
+    });
+  }
+
+  /* init */
+  applyTheme(THEMES[0]); applyMode(); sync();
+</script>
+</body>
+</html>

@@ -64,6 +64,9 @@
   .btns button{flex:1;border:0;border-radius:11px;padding:13px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
   .b-print{background:var(--accent);color:#fff}
   .b-ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  .back-check{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);
+    cursor:pointer;margin-top:6px;user-select:none}
+  .back-check input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
   .note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:14px}
   .note a{color:var(--accent)}
   .hint{font-size:11.5px;color:var(--muted);line-height:1.5}
@@ -205,12 +208,34 @@
     .tapbig .ripple::before,.tapbig .ripple::after{animation:none}
   }
 
+  /* ---------- Two faces (front + back) ---------- */
+  .faces{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;align-items:flex-start}
+  .face{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .face .cap{color:var(--muted);font-size:12px;text-align:center}
+  body.hide-back .face--back{display:none}
+
+  /* back of card: just the logo, as large as possible, same theme as front */
+  .card--back{justify-content:center;padding:20px}
+  .card--back .back-inner{position:relative;z-index:1;flex:1;width:100%;align-self:stretch;
+    display:flex;align-items:center;justify-content:center}
+  .back-logo{position:absolute;inset:0;border-radius:16px;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    background-size:contain;background-repeat:no-repeat;background-position:center}
+  .back-logo:not(.has-img){
+    background:linear-gradient(155deg,color-mix(in srgb,var(--c-accent) 26%,transparent),rgba(255,255,255,.05));
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+  .back-logo .mono{font-family:"Fraunces",serif;font-weight:600;color:var(--c-ink);
+    font-size:clamp(80px,26vw,120px);letter-spacing:.02em}
+  .back-logo.has-img .mono{display:none}
+
   /* ---------- Print ---------- */
   @media print{
     body{background:#fff}
-    .panel,.stage .cap{display:none!important}
+    .panel,.cap{display:none!important}
     .wrap{display:block}
     .stage{padding:0;display:block}
+    .faces{display:block}
+    .face{display:block}
     /* keep natural design size (360x516) and scale uniformly to real card size
        so print matches the preview exactly and nothing clips.
        0.9 * 360px = 85.7mm wide, 0.9 * 516px = 122.9mm tall */
@@ -220,6 +245,8 @@
     .card .rim{border-color:rgba(0,0,0,.12)}
     .card .sheen{display:none}
     .card .head,.card .body,.card .foot{animation:none!important}
+    /* back prints on its own sheet → duplex = front & back of the same card */
+    .face--back{page-break-before:always;break-before:page}
     @page{margin:12mm}
   }
 </style>
@@ -288,6 +315,8 @@
       <p class="hint" style="margin-top:8px">Al subir un logo se crea un tema <strong>Auto</strong> con sus colores (primer recuadro). Puedes elegir otro cuando quieras.</p>
     </div>
 
+    <label class="back-check"><input type="checkbox" id="backToggle" checked /> Imprimir reverso con el logo (doble cara)</label>
+
     <div class="btns">
       <button class="b-print" onclick="window.print()">🖨️ Imprimir</button>
       <button class="b-ghost" id="dlQR">⬇️ QR PNG</button>
@@ -308,6 +337,8 @@
 
   <!-- STAGE -->
   <main class="stage">
+   <div class="faces">
+    <div class="face face--front">
     <div class="card mode-both" id="card">
       <div class="glow"></div><div class="sheen"></div><div class="rim"></div>
 
@@ -358,7 +389,21 @@
         </span>
       </div>
     </div>
-    <div class="cap">Vista previa · al imprimir sale a 85.6 × 54 mm (tamaño tarjeta)</div>
+      <div class="cap">Frente</div>
+    </div>
+
+    <!-- BACK -->
+    <div class="face face--back">
+    <div class="card card--back mode-both" id="cardBack" aria-label="Reverso de la tarjeta">
+      <div class="glow"></div><div class="sheen"></div><div class="rim"></div>
+      <div class="back-inner">
+        <div class="back-logo" id="cb-logo"><span class="mono" id="cb-mono">L</span></div>
+      </div>
+    </div>
+      <div class="cap">Reverso · logo</div>
+    </div>
+   </div>
+   <p class="cap" style="opacity:.8">Al imprimir sale a 85.6 × 122 mm. El reverso se imprime en su propia hoja para impresión a doble cara.</p>
   </main>
 </div>
 
@@ -373,14 +418,28 @@
     {name:"Bosque",       bg:"#0f1a12", ink:"#eef7ef", mut:"#9bb3a0", accent:"#8bc34a", swatch:"linear-gradient(135deg,#0f1a12,#8bc34a)"}
   ];
   var card=document.getElementById('card');
+  var cardBack=document.getElementById('cardBack');
+  var cbLogo=document.getElementById('cb-logo');
+  var cards=[card,cardBack];
   var themeIdx=0;
   var autoTheme=null;
 
+  /* keep the back card exactly the same size as the front */
+  function matchHeights(){
+    cardBack.style.minHeight='0px';
+    requestAnimationFrame(function(){
+      var h=card.offsetHeight;
+      if(h) cardBack.style.minHeight=h+'px';
+    });
+  }
+
   function applyTheme(t){
-    card.style.setProperty('--c-bg',t.bg);
-    card.style.setProperty('--c-ink',t.ink);
-    card.style.setProperty('--c-mut',t.mut);
-    card.style.setProperty('--c-accent',t.accent);
+    cards.forEach(function(el){
+      el.style.setProperty('--c-bg',t.bg);
+      el.style.setProperty('--c-ink',t.ink);
+      el.style.setProperty('--c-mut',t.mut);
+      el.style.setProperty('--c-accent',t.accent);
+    });
     // regenerate QR with dark color matching ink for contrast on light themes handled by fixed dark
     renderQR(document.getElementById('link').value, t);
   }
@@ -496,6 +555,7 @@
                      document.getElementById('badge-qr').style.display='inline-flex'; }
     if(mode==='both'){ document.getElementById('badge-qr').style.display='none'; }
     document.getElementById('c-nfc').classList.toggle('show',tapOn);
+    matchHeights();
   }
 
   /* ---------- QR ---------- */
@@ -534,6 +594,9 @@
     makeThumb(currentLogoData,fitMode,function(thumb){
       cLogo.style.backgroundImage="url("+thumb+")"; cLogo.classList.add('has-img');
     });
+    // back uses the raw logo at 'contain' so it fills as much of the card as possible
+    cbLogo.style.backgroundImage="url("+currentLogoData+")"; cbLogo.classList.add('has-img');
+    matchHeights();
   }
   function loadFile(f){
     if(!f)return;
@@ -562,7 +625,10 @@
   });
 
   document.getElementById('removeLogo').onclick=function(){
-    currentLogoData=null; cLogo.classList.remove('has-img'); cLogo.style.backgroundImage=''; logoInput.value='';
+    currentLogoData=null;
+    cLogo.classList.remove('has-img'); cLogo.style.backgroundImage='';
+    cbLogo.classList.remove('has-img'); cbLogo.style.backgroundImage='';
+    logoInput.value='';
     document.getElementById('dropTxt').textContent="Arrastra o haz clic para subir tu logo (PNG/JPG)";
     document.getElementById('logoActions').style.display='none';
     document.getElementById('logoFit').style.display='none';
@@ -583,11 +649,13 @@
     var name=document.getElementById('biz').value||"Tu Negocio";
     document.getElementById('c-biz').textContent=name;
     document.getElementById('c-mono').textContent=initials(name);
+    document.getElementById('cb-mono').textContent=initials(name);
     document.getElementById('c-headline').textContent=document.getElementById('headline').value;
     var s=parseInt(document.getElementById('stars').value,10);
     var el=document.getElementById('c-stars');
     el.style.display=s>0?'block':'none'; if(s>0)el.textContent=starsStr(s);
     renderQR(document.getElementById('link').value,THEMES[themeIdx]);
+    matchHeights();
   }
   ['biz','headline','link','stars'].forEach(function(id){
     document.getElementById(id).addEventListener('input',sync);
@@ -654,8 +722,16 @@
     });
   }
 
+  /* ---------- Back face toggle ---------- */
+  document.getElementById('backToggle').addEventListener('change',function(){
+    document.body.classList.toggle('hide-back',!this.checked);
+  });
+
   /* init */
   applyTheme(THEMES[0]); applyMode(); sync();
+  window.addEventListener('resize',matchHeights);
+  window.addEventListener('load',matchHeights);
+  matchHeights();
 </script>
 </body>
 </html>

@@ -234,8 +234,12 @@
     .panel,.cap{display:none!important}
     .wrap{display:block}
     .stage{padding:0;display:block}
-    .faces{display:block}
-    .face{display:block}
+    /* both faces side by side on ONE landscape page, each at full physical size */
+    .faces{display:flex;flex-direction:row;flex-wrap:nowrap;gap:12mm;
+      justify-content:center;align-items:flex-start;page-break-inside:avoid;break-inside:avoid}
+    /* the scaled card visually occupies 324px but its flow box stays 360px;
+       shrink the box back so the two cards center tightly */
+    .face{display:block;width:324px}
     /* keep natural design size (360x516) and scale uniformly to real card size
        so print matches the preview exactly and nothing clips.
        0.9 * 360px = 85.7mm wide, 0.9 * 516px = 122.9mm tall */
@@ -245,9 +249,9 @@
     .card .rim{border-color:rgba(0,0,0,.12)}
     .card .sheen{display:none}
     .card .head,.card .body,.card .foot{animation:none!important}
-    /* back prints on its own sheet → duplex = front & back of the same card */
-    .face--back{page-break-before:always;break-before:page}
-    @page{margin:12mm}
+    /* both fit on the same sheet — no page break between front and back */
+    .face--back{page-break-before:auto;break-before:auto}
+    @page{size:landscape;margin:12mm}
   }
 </style>
 </head>
@@ -469,15 +473,25 @@
   }
   function hslCss(h,s,l){return 'hsl('+Math.round(h)+','+Math.round(s*100)+'%,'+Math.round(l*100)+'%)';}
 
-  function themeFromAccent(accent){
+  /* Build a full theme adopted from the logo:
+     - accent  = the logo's most vibrant color (its hue drives the whole card)
+     - isLight = whether the logo's artwork reads light or dark → light vs dark card
+     so a bright/pastel logo gets a light card and a dark/rich logo gets a dark card. */
+  function themeFromLogo(accent,isLight){
     var h,s,l;
     if(accent){var a=rgbToHsl(accent.r,accent.g,accent.b);h=a.h;s=a.s;l=a.l;}
-    else{h=41;s=.5;l=.5;} // gold fallback for greyscale logos
-    var accCss=hslCss(h, Math.min(.9,Math.max(s,.45)), Math.min(.72,Math.max(l,.5)));
-    var bg =hslCss(h,.30,.085);
-    var mut=hslCss(h,.14,.63);
-    return {name:'Auto',bg:bg,ink:'#f7f8fa',mut:mut,accent:accCss,
-      swatch:'linear-gradient(135deg,'+bg+' 42%,'+accCss+')'};
+    else{h=41;s=.5;l=.5;isLight=false;} // gold fallback for greyscale logos
+    var accCss=hslCss(h, Math.min(.92,Math.max(s,.5)), Math.min(.66,Math.max(l,.46)));
+    if(isLight){
+      var bgL =hslCss(h,.24,.955);   // soft tinted paper in the logo's hue
+      var mutL=hslCss(h,.16,.40);
+      return {name:'Auto',bg:bgL,ink:'#1c2026',mut:mutL,accent:accCss,
+        swatch:'linear-gradient(135deg,'+bgL+' 42%,'+accCss+')'};
+    }
+    var bgD =hslCss(h,.32,.085);     // deep tinted charcoal in the logo's hue
+    var mutD=hslCss(h,.14,.63);
+    return {name:'Auto',bg:bgD,ink:'#f7f8fa',mut:mutD,accent:accCss,
+      swatch:'linear-gradient(135deg,'+bgD+' 42%,'+accCss+')'};
   }
 
   function extractPalette(dataUrl,cb){
@@ -485,11 +499,12 @@
     img.onload=function(){
       var N=72,c=document.createElement('canvas');c.width=N;c.height=N;
       var ctx=c.getContext('2d');ctx.drawImage(img,0,0,N,N);
-      var d; try{ d=ctx.getImageData(0,0,N,N).data; }catch(e){ cb(themeFromAccent(null)); return; }
-      var map={};
+      var d; try{ d=ctx.getImageData(0,0,N,N).data; }catch(e){ cb(themeFromLogo(null,false)); return; }
+      var map={},lumSum=0,lumN=0;
       for(var i=0;i<d.length;i+=4){
         var r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
         if(a<125) continue;
+        lumSum+=(0.299*r+0.587*g+0.114*b)/255; lumN++;   // perceived brightness of the artwork
         var key=(r>>4)+'-'+(g>>4)+'-'+(b>>4);
         var m=map[key]||(map[key]={r:0,g:0,b:0,n:0});
         m.r+=r;m.g+=g;m.b+=b;m.n++;
@@ -503,9 +518,10 @@
         var score=hsl.s*Math.sqrt(col.n)*(1-Math.abs(hsl.l-.5));
         if(score>best){best=score;accent=col;}
       }
-      cb(themeFromAccent(accent));
+      var avgLum=lumN?lumSum/lumN:.5;
+      cb(themeFromLogo(accent, avgLum>0.6));
     };
-    img.onerror=function(){cb(themeFromAccent(null))};
+    img.onerror=function(){cb(themeFromLogo(null,false))};
     img.src=dataUrl;
   }
 

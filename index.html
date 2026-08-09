@@ -72,10 +72,6 @@
   .hint{font-size:11.5px;color:var(--muted);line-height:1.5}
   .hint strong{color:var(--ink)}
 
-  .gen-link{margin-top:8px;width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
-    border-radius:10px;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
-  .gen-link:hover{border-color:var(--accent);color:#fff}
-
   .nfc-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
   .b-nfc{width:100%;border:0;border-radius:11px;padding:13px;font-weight:700;font-size:14px;
     cursor:pointer;font-family:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);transition:.15s}
@@ -232,46 +228,10 @@
     font-size:clamp(80px,26vw,120px);letter-spacing:.02em}
   .back-logo.has-img .mono{display:none}
 
-  /* ---------- Modal: Google Maps → review link ---------- */
-  .modal-overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
-    padding:20px;background:rgba(6,8,12,.72);backdrop-filter:blur(4px)}
-  .modal-overlay.show{display:flex}
-  .modal{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line);border-radius:18px;
-    padding:24px 22px;box-shadow:0 40px 90px -20px rgba(0,0,0,.75);
-    animation:mrise .3s cubic-bezier(.2,.7,.2,1) both}
-  @keyframes mrise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-  .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
-  .modal-head h2{font-family:"Fraunces",serif;font-weight:600;font-size:19px;margin:0;letter-spacing:-.01em}
-  .modal-x{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px;font-family:inherit}
-  .modal-x:hover{color:var(--ink)}
-  .modal .msub{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 16px}
-  .modal textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
-    border-radius:11px;padding:11px 12px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;outline:none}
-  .modal textarea:focus{border-color:var(--accent)}
-  .b-gen{width:100%;margin-top:12px;border:0;border-radius:11px;padding:13px;font-weight:700;font-size:14px;
-    cursor:pointer;font-family:inherit;background:var(--accent);color:#fff}
-  .gen-result{margin-top:16px;display:none}
-  .gen-result.show{display:block;animation:mrise .25s both}
-  .gen-result .rlabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;font-weight:700;margin-bottom:6px}
-  .gen-out{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 12px;
-    font-size:12.5px;word-break:break-all;color:var(--ink);line-height:1.45}
-  .gen-note{font-size:11.5px;color:var(--muted);line-height:1.55;margin:9px 0 0}
-  .gen-note:empty{display:none}
-  .gen-note code{background:var(--panel2);padding:1px 5px;border-radius:5px;font-size:11px}
-  .gen-note a{color:var(--accent)}
-  .gen-actions{display:flex;gap:8px;margin-top:10px}
-  .gen-actions button{flex:1;border:0;border-radius:10px;padding:11px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
-  .b-use{background:var(--accent);color:#fff}
-  .b-copy{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
-  .gen-err{color:#ea4335;font-size:12.5px;line-height:1.5;margin-top:12px;display:none}
-  .gen-err.show{display:block}
-  .gen-hint{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:14px}
-  .gen-hint code{background:var(--panel2);padding:1px 5px;border-radius:5px;font-size:11px}
-
   /* ---------- Print ---------- */
   @media print{
     body{background:#fff}
-    .panel,.cap,.modal-overlay{display:none!important}
+    .panel,.cap{display:none!important}
     .wrap{display:block}
     .stage{padding:0;display:block}
     /* both faces side by side on ONE landscape page, each at full physical size */
@@ -342,7 +302,6 @@
     <div class="group">
       <label>Enlace de reseña de Google</label>
       <input type="url" id="link" placeholder="https://g.page/r/XXXX/review" />
-      <button type="button" class="gen-link" id="openGen">🔗 Generar desde un enlace de Google Maps</button>
     </div>
 
     <div class="group">
@@ -450,35 +409,6 @@
    </div>
    <p class="cap" style="opacity:.8">Al imprimir sale a 85.6 × 122 mm. El reverso se imprime en su propia hoja para impresión a doble cara.</p>
   </main>
-</div>
-
-<!-- MODAL: generar enlace de reseña desde Google Maps -->
-<div class="modal-overlay" id="genOverlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="genTitle">
-    <div class="modal-head">
-      <h2 id="genTitle">Generar enlace de reseña</h2>
-      <button class="modal-x" id="genClose" aria-label="Cerrar">×</button>
-    </div>
-    <p class="msub">Pega el enlace de Google Maps del negocio y crearemos el enlace directo para dejar una reseña.</p>
-    <textarea id="mapsInput" placeholder="https://www.google.com/maps/place/Tu+Negocio/@19.4,-99.1,17z/data=..."></textarea>
-    <button class="b-gen" id="genBtn">Generar enlace</button>
-
-    <div class="gen-result" id="genResult">
-      <div class="rlabel">Enlace de reseña</div>
-      <div class="gen-out" id="genOut"></div>
-      <p class="gen-note" id="genNote"></p>
-      <div class="gen-actions">
-        <button class="b-use" id="genUse">Usar este enlace</button>
-        <button class="b-copy" id="genCopy">Copiar</button>
-      </div>
-    </div>
-
-    <div class="gen-err" id="genErr"></div>
-
-    <p class="gen-hint">
-      <strong>¿Enlace corto</strong> (<code>maps.app.goo.gl/…</code>)? Ábrelo en tu navegador, espera a que cargue el mapa y copia la dirección completa de la barra (la que contiene <code>/maps/place/…</code>). Esa sí funciona aquí.
-    </p>
-  </div>
 </div>
 
 <script>
@@ -812,95 +742,6 @@
   document.getElementById('backToggle').addEventListener('change',function(){
     document.body.classList.toggle('hide-back',!this.checked);
   });
-
-  /* ---------- Google Maps → review-link generator ---------- */
-  (function(){
-    var overlay=document.getElementById('genOverlay'),
-        input=document.getElementById('mapsInput'),
-        out=document.getElementById('genOut'),
-        resultBox=document.getElementById('genResult'),
-        errBox=document.getElementById('genErr');
-    var generated="";
-
-    function open(){ overlay.classList.add('show'); setTimeout(function(){input.focus()},60); }
-    function close(){ overlay.classList.remove('show'); }
-    document.getElementById('openGen').onclick=open;
-    document.getElementById('genClose').onclick=close;
-    overlay.addEventListener('click',function(e){ if(e.target===overlay) close(); });
-    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&overlay.classList.contains('show')) close(); });
-
-    function showErr(msg){ errBox.textContent=msg; errBox.classList.add('show'); resultBox.classList.remove('show'); }
-
-    /* Pull a place reference out of a Google Maps URL.
-       IMPORTANT: search.google.com/local/writereview?placeid= ONLY accepts a real
-       ChIJ… Place ID. A decimal CID there returns 404 — so a CID must instead build a
-       maps.google.com/?cid=… link (opens the listing → visitor taps "Escribir reseña"). */
-    function extractRef(raw){
-      var s=(raw||"").trim();
-      if(!s) return {err:"Pega un enlace primero."};
-      // already a direct review link → reuse only if it carries a real ChIJ Place ID
-      var wr=s.match(/writereview\?placeid=([^&\s]+)/i);
-      if(wr){
-        var wid=decodeURIComponent(wr[1]);
-        if(/^ChI/i.test(wid)) return {placeid:wid};      // valid direct link
-        if(/^\d+$/.test(wid)) return {cid:wid};          // broken CID link → rebuild as ?cid=
-        return {placeid:wid};
-      }
-      // g.page review short link → already a review link, use whole URL
-      var gp=s.match(/https?:\/\/g\.page\/[^\s]*\/review/i);
-      if(gp) return {full:gp[0]};
-      // ChIJ Place ID anywhere (e.g. ?q=place_id:ChIJ…) → best case, direct review link
-      var chij=s.match(/(ChI[0-9A-Za-z_-]{15,})/);
-      if(chij) return {placeid:chij[1]};
-      // explicit decimal cid (?cid=… or ludocid:…)
-      var cid=s.match(/[?&]cid=(\d+)/) || s.match(/ludocid[=:](\d+)/i);
-      if(cid) return {cid:cid[1]};
-      // hex feature id 0x…:0x… → CID is the hex AFTER the colon (BigInt for 64-bit)
-      var hex=s.match(/0x[0-9a-fA-F]+:0x([0-9a-fA-F]+)/);
-      if(hex){ try{ return {cid:BigInt('0x'+hex[1]).toString()}; }catch(e){} }
-      // short link we can't follow from the browser
-      if(/maps\.app\.goo\.gl|goo\.gl\/maps/i.test(s))
-        return {err:"Es un enlace corto que no podemos leer aquí. Ábrelo en tu navegador y copia la dirección completa (la que contiene /maps/place/…)."};
-      return {err:"No encontramos el identificador del negocio en ese enlace. Copia la URL completa desde Google Maps (con /maps/place/…)."};
-    }
-
-    document.getElementById('genBtn').onclick=function(){
-      errBox.classList.remove('show');
-      var ref=extractRef(input.value);
-      if(ref.err){ showErr(ref.err); return; }
-      var note=document.getElementById('genNote');
-      if(ref.full){
-        generated=ref.full;
-        note.innerHTML="";
-      } else if(ref.placeid){
-        // real Place ID → one-tap direct-to-review link
-        generated='https://search.google.com/local/writereview?placeid='+ref.placeid;
-        note.innerHTML='✅ Enlace directo: abre la ventana para escribir la reseña con un solo toque.';
-      } else {
-        // only a CID → writereview would dar 404. Use a listing link that DOES work.
-        generated='https://www.google.com/maps?cid='+ref.cid;
-        note.innerHTML='Este enlace abre la ficha del negocio; el cliente toca <strong>«Escribir una reseña»</strong>. '+
-          'Para un enlace de <em>un solo toque</em>, consigue el <strong>Place ID</strong> (formato <code>ChIJ…</code>) en el '+
-          '<a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener">buscador de Place ID de Google</a> y pégalo aquí.';
-      }
-      out.textContent=generated;
-      resultBox.classList.add('show');
-    };
-
-    document.getElementById('genUse').onclick=function(){
-      if(!generated) return;
-      var link=document.getElementById('link');
-      link.value=generated; link.dispatchEvent(new Event('input')); // regenerates QR
-      close();
-    };
-    document.getElementById('genCopy').onclick=function(){
-      if(!generated) return;
-      var btn=this;
-      navigator.clipboard.writeText(generated).then(function(){
-        btn.textContent="Copiado ✓"; setTimeout(function(){btn.textContent="Copiar"},1500);
-      }).catch(function(){ btn.textContent="Selecciona y copia"; });
-    };
-  })();
 
   /* init */
   applyTheme(THEMES[0]); applyMode(); sync();

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Google Review Cards — Estudio + CRM (v2 preview)</title>
 <!-- node-qrcode: SVG + error-correction H (replaces abandoned qrcodejs) -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <!-- PDF pipeline: exact mm, bleed + crop marks -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -967,12 +967,15 @@
     requestAnimationFrame(function(){var h=card.offsetHeight;if(h)cardBack.style.height=h+'px';});
   }
 
-  /* ================= QR ================= */
+  /* ================= QR (qrcode-generator: SVG, level H, quiet zone) ================= */
   function normalizeUrl(u){var s=(u||'').trim();if(!s)return "https://google.com";if(!/^https?:\/\//i.test(s))s='https://'+s;return s;}
+  function buildQR(text){ var qr=qrcode(0,'H'); qr.addData(text); qr.make(); return qr; }  // type 0 = auto-size, EC level H
   function renderQR(url){
     var box=document.getElementById('qr'),val=normalizeUrl(url);
-    QRCode.toString(val,{type:'svg',errorCorrectionLevel:'H',margin:4,color:{dark:'#111111',light:'#ffffff'}},function(err,svg){
-      if(err){box.textContent='QR error';return;}box.innerHTML=svg;});
+    try{
+      var qr=buildQR(val);
+      box.innerHTML=qr.createSvgTag({cellSize:6, margin:4, scalable:true});  // margin 4 = quiet zone
+    }catch(e){ box.textContent='QR'; }
   }
 
   /* ================= Logo ================= */
@@ -1042,12 +1045,20 @@
     document.getElementById(id).addEventListener('change',sync);
   });
 
-  /* ================= QR PNG ================= */
+  /* ================= QR PNG (high-res) ================= */
   document.getElementById('dlQR').onclick=function(){
     var val=normalizeUrl(document.getElementById('link').value);
-    QRCode.toDataURL(val,{errorCorrectionLevel:'H',margin:4,scale:18,color:{dark:'#111111',light:'#ffffff'}},function(err,url){
-      if(err){alert("No se pudo generar el QR.");return;}
-      var a=document.createElement('a');a.href=url;a.download="google-review-qr.png";a.click();});
+    try{
+      var qr=buildQR(val);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+        var ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0);
+        var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='google-review-qr.png';a.click();
+      };
+      img.onerror=function(){alert('No se pudo generar el QR.');};
+      img.src=qr.createDataURL(16,4);   // GIF data URL, cellSize 16, margin 4 → crisp
+    }catch(e){ alert('Primero pon el enlace de reseña.'); }
   };
 
   /* ================= PDF ================= */

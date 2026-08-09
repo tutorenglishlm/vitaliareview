@@ -378,12 +378,11 @@
   <div class="login-card">
     <div class="login-mark">VITALIA · Estudio</div>
     <h1>Google Review Cards</h1>
-    <p id="loginSub">Inicia sesión para acceder al estudio y a tu CRM de proyectos.</p>
-    <input type="email" id="loginEmail" placeholder="Correo" autocomplete="email" value="felix_vazquez@live.com" />
-    <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password" style="margin-top:10px" />
+    <p id="loginSub">Ingresa tu contraseña para acceder al estudio y tu CRM.</p>
+    <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password" />
     <button id="loginBtn">Entrar</button>
     <div class="login-err" id="loginErr"></div>
-    <div class="login-hint">¿No tienes cuenta? <a href="#" id="toggleSignup" style="color:var(--accent)">Crear cuenta</a> · Datos guardados en Supabase.</div>
+    <div class="login-hint">Acceso privado · Datos guardados en Supabase.</div>
   </div>
 </div>
 
@@ -640,40 +639,28 @@
   var SUPABASE_URL="https://owatedqvjkxcfnkucqls.supabase.co";
   var SUPABASE_KEY="sb_publishable_tVREm4r8WXwyto9wr5e-7A_TiAszXXD";
   var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  var currentUserId=null;
+  var LOGIN_EMAIL="felix_vazquez@live.com";   // cuenta fija — login solo con contraseña
 
   var loginView=document.getElementById('loginView'), app=document.getElementById('app');
-  var signupMode=false;
-  function showApp(){ loginView.style.display='none'; app.style.display='block'; reloadProjects(); }
-  function showLogin(){ app.style.display='none'; loginView.style.display='flex'; var e=document.getElementById('loginEmail'); if(e) e.focus(); }
+  async function showApp(){ loginView.style.display='none'; app.style.display='block';
+    try{ var u=await sb.auth.getUser(); currentUserId=u.data.user?u.data.user.id:null; }catch(e){}
+    reloadProjects(); }
+  function showLogin(){ app.style.display='none'; loginView.style.display='flex'; var e=document.getElementById('loginPass'); if(e) e.focus(); }
   function setLoginErr(m){ document.getElementById('loginErr').textContent=m||''; }
-  function setSignup(on){ signupMode=on;
-    document.getElementById('loginBtn').textContent=on?'Crear cuenta':'Entrar';
-    document.getElementById('loginSub').textContent=on?'Crea tu cuenta para el estudio y tu CRM.':'Inicia sesión para acceder al estudio y a tu CRM.';
-    document.getElementById('toggleSignup').textContent=on?'Ya tengo cuenta':'Crear cuenta';
-  }
   async function tryLogin(){
-    var email=document.getElementById('loginEmail').value.trim();
     var pass=document.getElementById('loginPass').value;
-    if(!email||!pass){ setLoginErr('Escribe correo y contraseña.'); return; }
+    if(!pass){ setLoginErr('Escribe tu contraseña.'); return; }
     setLoginErr(''); var btn=document.getElementById('loginBtn'), old=btn.textContent; btn.textContent='…'; btn.disabled=true;
     try{
-      if(signupMode){
-        var r=await sb.auth.signUp({email:email,password:pass});
-        if(r.error) throw r.error;
-        if(r.data && r.data.session){ showApp(); }
-        else{ setLoginErr('Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.'); setSignup(false); }
-      }else{
-        var r2=await sb.auth.signInWithPassword({email:email,password:pass});
-        if(r2.error) throw r2.error;
-        showApp();
-      }
+      var r=await sb.auth.signInWithPassword({email:LOGIN_EMAIL,password:pass});
+      if(r.error) throw r.error;
+      showApp();
     }catch(e){ setLoginErr(e && e.message ? e.message : 'No se pudo iniciar sesión.'); }
     finally{ btn.textContent=old; btn.disabled=false; }
   }
   document.getElementById('loginBtn').onclick=tryLogin;
-  document.getElementById('toggleSignup').onclick=function(e){ e.preventDefault(); setSignup(!signupMode); };
   document.getElementById('loginPass').addEventListener('keydown',function(e){ if(e.key==='Enter') tryLogin(); });
-  document.getElementById('loginEmail').addEventListener('keydown',function(e){ if(e.key==='Enter') tryLogin(); });
   document.getElementById('logoutBtn').onclick=async function(){ await sb.auth.signOut(); projectsCache=[]; document.getElementById('loginPass').value=''; showLogin(); };
 
   /* ================= Nav ================= */
@@ -863,11 +850,13 @@
   var currentLogoData=null,fitMode="contain";
   function makeThumb(dataUrl,mode,cb){
     var img=new Image();
+    if(/^https?:/i.test(dataUrl)) img.crossOrigin='anonymous';   // Storage URLs (CORS) → no canvas taint
     img.onload=function(){
       var S=256,c=document.createElement('canvas');c.width=S;c.height=S;var ctx=c.getContext('2d');ctx.clearRect(0,0,S,S);
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';var scale,w,h;
       if(mode==='cover'){scale=Math.max(S/img.width,S/img.height);}else{scale=Math.min((S*0.84)/img.width,(S*0.84)/img.height);}
-      w=img.width*scale;h=img.height*scale;ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);cb(c.toDataURL('image/png'));
+      w=img.width*scale;h=img.height*scale;ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
+      try{cb(c.toDataURL('image/png'));}catch(e){cb(dataUrl);}
     };img.onerror=function(){cb(dataUrl)};img.src=dataUrl;
   }
   function applyLogo(){
@@ -1063,13 +1052,28 @@
   };
   document.getElementById('crmModalClose').onclick=function(){crmOverlay.classList.remove('show');};
   crmOverlay.addEventListener('click',function(e){if(e.target===crmOverlay)crmOverlay.classList.remove('show');});
+  function dataURLtoBlob(d){var arr=d.split(','),mime=(arr[0].match(/:(.*?);/)||[])[1]||'image/png',bstr=atob(arr[1]),n=bstr.length,u8=new Uint8Array(n);while(n--)u8[n]=bstr.charCodeAt(n);return new Blob([u8],{type:mime});}
+  async function uploadLogoIfNeeded(cfg){
+    // fresh uploads arrive as base64 data URLs → push to Storage, keep only the public URL in the row
+    if(cfg.logo && cfg.logo.indexOf('data:')===0 && currentUserId){
+      try{
+        var blob=dataURLtoBlob(cfg.logo);
+        var rid=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2));
+        var path=currentUserId+'/'+rid+'.png';
+        var up=await sb.storage.from('logos').upload(path,blob,{upsert:true,contentType:blob.type||'image/png'});
+        if(up.error) throw up.error;
+        cfg.logo=sb.storage.from('logos').getPublicUrl(path).data.publicUrl;
+      }catch(e){ console.warn('Logo upload falló, se guarda en base64:',e); }  // graceful fallback
+    }
+    return cfg;
+  }
   document.getElementById('crmModalSave').onclick=async function(){
     var btn=this,old=btn.textContent;btn.textContent='Guardando…';btn.disabled=true;
     var payload={client:document.getElementById('mClient').value.trim()||'(sin nombre)',
       contact:document.getElementById('mContact').value.trim(),
       status:document.getElementById('mStatus').value,
       notes:document.getElementById('mNotes').value.trim(),
-      config:getConfig()};
+      config:await uploadLogoIfNeeded(getConfig())};
     try{
       if(currentProjectId){
         payload.updated_at=new Date().toISOString();

@@ -181,6 +181,37 @@
   .nfc-status.ok{color:var(--green)}
   .nfc-status.err{color:var(--red)}
 
+  /* ---------- Wizard ---------- */
+  .wiz-head{margin-bottom:22px}
+  .wiz-progress{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+  #wizStepNum{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  #wizStepName{font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.02em}
+  .wiz-bar{height:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .wiz-bar i{display:block;height:100%;width:14%;border-radius:999px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s cubic-bezier(.2,.8,.2,1)}
+  .wiz-dots{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+  .wiz-dots button{width:28px;height:28px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--faint);
+    font-family:inherit;font-weight:800;font-size:11.5px;cursor:pointer;transition:.15s;padding:0}
+  .wiz-dots button:hover{border-color:var(--accent);color:var(--ink)}
+  .wiz-dots button.done{color:var(--ink);border-color:var(--line2)}
+  .wiz-dots button.on{background:linear-gradient(180deg,var(--accent2),var(--accent));color:var(--accent-ink);border-color:transparent;box-shadow:var(--sh1)}
+
+  .step{display:none}
+  .step.active{display:block;animation:stepin .35s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes stepin{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+  .step-title{font-family:"Fraunces",serif;font-weight:600;font-size:22px;margin:0 0 5px;letter-spacing:-.01em}
+  .step-help{color:var(--muted);font-size:12.5px;line-height:1.55;margin:0 0 20px}
+
+  .wiz-nav{position:sticky;bottom:0;display:flex;gap:10px;margin-top:24px;padding:14px 0 6px;
+    background:linear-gradient(180deg, rgba(19,16,22,0), #141018 38%)}
+  .wiz-nav button{border:0;border-radius:12px;padding:13px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;transition:transform .12s, filter .15s, border-color .15s}
+  .wiz-nav button:active{transform:translateY(1px)}
+  .wiz-back{flex:1;background:var(--panel2);color:var(--ink);border:1px solid var(--line)!important}
+  .wiz-back:hover{border-color:var(--accent)!important}
+  .wiz-back:disabled{opacity:.4;cursor:not-allowed}
+  .wiz-next{flex:1.5;background:linear-gradient(180deg,var(--accent2),var(--accent));color:var(--accent-ink);box-shadow:var(--sh2)}
+  .wiz-next:hover{filter:brightness(1.05)}
+
   /* ---------- Stage / Card ---------- */
   .stage{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px}
   .stage .cap{color:var(--muted);font-size:12px}
@@ -456,114 +487,158 @@
   <div id="designerView">
    <div class="wrap">
     <aside class="panel">
-      <p class="sub">Diseña la tarjeta, elige el tamaño real, expórtala en PDF listo para imprenta y guárdala en tu CRM.</p>
-
-      <div class="group">
-        <label>Tamaño de tarjeta</label>
-        <div class="seg" id="format">
-          <button data-fmt="cr80" class="on">NFC · 54×85.6 mm</button>
-          <button data-fmt="tall">Tent · 85.6×122 mm</button>
-        </div>
-        <p class="hint" style="margin-top:8px"><strong>NFC</strong> = tarjeta estándar (CR80), la del chip. <strong>Tent</strong> = tarjeta grande de mesa.</p>
+      <div class="wiz-head">
+        <div class="wiz-progress"><span id="wizStepNum">Paso 1 de 7</span><span id="wizStepName">Formato</span></div>
+        <div class="wiz-bar"><i id="wizBarFill"></i></div>
+        <div class="wiz-dots" id="wizDots"></div>
       </div>
 
-      <div class="group">
-        <label>Modo de la tarjeta</label>
-        <div class="seg" id="mode">
-          <button data-mode="both" class="on">QR + Tap</button>
-          <button data-mode="qr">Solo QR</button>
-          <button data-mode="tap">Solo Tap</button>
-        </div>
-      </div>
+      <div class="steps">
 
-      <div class="group">
-        <label>Logo</label>
-        <label class="logo-drop" id="drop">
-          <span id="dropTxt">Arrastra o haz clic para subir tu logo (PNG/JPG)</span>
-          <input type="file" id="logoInput" accept="image/*" />
-        </label>
-        <div class="logo-fit" id="logoFit" style="display:none">
-          <div class="seg seg-sm" id="fitSeg">
-            <button data-fit="contain" class="on">Ajustar (todo el logo)</button>
-            <button data-fit="cover">Rellenar</button>
+        <!-- STEP 1 · Formato -->
+        <section class="step active" data-title="Formato">
+          <h3 class="step-title">Elige el tamaño y el modo</h3>
+          <p class="step-help">Selecciona el tamaño real de la tarjeta y cómo la usará el cliente.</p>
+          <div class="group">
+            <label>Tamaño de tarjeta</label>
+            <div class="seg" id="format">
+              <button data-fmt="cr80" class="on">NFC · 54×85.6 mm</button>
+              <button data-fmt="tall">Tent · 85.6×122 mm</button>
+            </div>
+            <p class="hint" style="margin-top:8px"><strong>NFC</strong> = tarjeta estándar (CR80), la del chip. <strong>Tent</strong> = tarjeta grande de mesa.</p>
           </div>
-        </div>
-        <div class="logo-actions" id="logoActions" style="display:none">
-          <button class="mini" id="removeLogo">Quitar logo</button>
-        </div>
+          <div class="group">
+            <label>Modo de la tarjeta</label>
+            <div class="seg" id="mode">
+              <button data-mode="both" class="on">QR + Tap</button>
+              <button data-mode="qr">Solo QR</button>
+              <button data-mode="tap">Solo Tap</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 2 · Logo -->
+        <section class="step" data-title="Logo">
+          <h3 class="step-title">Sube el logo</h3>
+          <p class="step-help">Arrastra el logo del negocio. La tarjeta tomará sus colores automáticamente.</p>
+          <div class="group">
+            <label>Logo</label>
+            <label class="logo-drop" id="drop">
+              <span id="dropTxt">Arrastra o haz clic para subir tu logo (PNG/JPG)</span>
+              <input type="file" id="logoInput" accept="image/*" />
+            </label>
+            <div class="logo-fit" id="logoFit" style="display:none">
+              <div class="seg seg-sm" id="fitSeg">
+                <button data-fit="contain" class="on">Ajustar (todo el logo)</button>
+                <button data-fit="cover">Rellenar</button>
+              </div>
+            </div>
+            <div class="logo-actions" id="logoActions" style="display:none">
+              <button class="mini" id="removeLogo">Quitar logo</button>
+            </div>
+            <p class="hint" style="margin-top:8px">¿Sin logo? No pasa nada — se usarán las iniciales del negocio.</p>
+          </div>
+        </section>
+
+        <!-- STEP 3 · Negocio -->
+        <section class="step" data-title="Negocio">
+          <h3 class="step-title">Datos del negocio</h3>
+          <p class="step-help">Escribe el nombre y una frase de invitación neutral.</p>
+          <div class="group">
+            <label>Nombre del negocio</label>
+            <input type="text" id="biz" value="La Mar de Cortés" />
+          </div>
+          <div class="group">
+            <label>Frase / llamado</label>
+            <input type="text" id="headline" value="Cuéntanos cómo estuvo tu experiencia." />
+            <p class="warn">⚠️ Google prohíbe pedir <strong>solo</strong> reseñas positivas o condicionarlas a una buena experiencia. Usa un llamado neutral.</p>
+          </div>
+        </section>
+
+        <!-- STEP 4 · Enlace -->
+        <section class="step" data-title="Enlace">
+          <h3 class="step-title">Enlace de Google</h3>
+          <p class="step-help">Pega el enlace de reseña del negocio. ¿No lo tienes? Pulsa <strong>Maps</strong> y pega la URL de Google Maps.</p>
+          <div class="group">
+            <label>Enlace de reseña de Google</label>
+            <div class="link-row">
+              <input type="url" id="link" placeholder="https://g.page/r/XXXX/review" />
+              <button class="gen-btn" id="openGen">🔗 Maps</button>
+            </div>
+            <p class="hint" style="margin-top:8px">Este enlace es el que abre el QR y se graba en el chip NFC.</p>
+          </div>
+        </section>
+
+        <!-- STEP 5 · Estilo -->
+        <section class="step" data-title="Estilo">
+          <h3 class="step-title">Estrellas y color</h3>
+          <p class="step-help">Ajusta las estrellas decorativas y el tema de color de la tarjeta.</p>
+          <div class="group">
+            <label>Estrellas (decorativas)</label>
+            <select id="stars">
+              <option value="0" selected>Sin estrellas</option>
+              <option value="5">★★★★★ (5)</option>
+              <option value="4">★★★★ (4)</option>
+            </select>
+          </div>
+          <div class="group">
+            <label>Tema de color</label>
+            <div class="chips" id="themes"></div>
+            <div class="custom-color">
+              <label>Fondo <input type="color" id="cBg" value="#101418"></label>
+              <label>Acento <input type="color" id="cAcc" value="#c9a24b"></label>
+              <button class="mini" id="applyCustom">Aplicar color</button>
+            </div>
+            <p class="hint" style="margin-top:8px">Elige un preset, deja que el logo genere el tema <strong>Auto</strong>, o crea uno con el selector. El QR siempre queda en alto contraste.</p>
+          </div>
+        </section>
+
+        <!-- STEP 6 · Exportar y guardar -->
+        <section class="step" data-title="Exportar">
+          <h3 class="step-title">Exportar y guardar</h3>
+          <p class="step-help">Configura la impresión, descarga el PDF listo para imprenta y guarda el proyecto en tu CRM.</p>
+          <div class="group">
+            <label>Producción</label>
+            <label class="check"><input type="checkbox" id="backToggle" checked /> Imprimir reverso con el logo (doble cara)</label>
+            <label class="check"><input type="checkbox" id="cropMarks" checked /> Marcas de corte + sangrado de 3 mm (PDF)</label>
+            <div class="row2" style="margin-top:12px">
+              <div><label style="font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;font-weight:700">Copias (lote)</label>
+                <input type="number" id="copies" min="1" max="200" value="1" /></div>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="b-print" id="dlPDF">📄 Descargar PDF</button>
+            <button class="b-ghost" id="dlQR">⬇️ QR PNG</button>
+          </div>
+          <div class="btns">
+            <button class="b-ghost" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="b-ghost" id="copyCfg">🔗 Copiar diseño</button>
+          </div>
+          <div class="btns" style="margin-top:10px">
+            <button class="b-crm" id="sendCrm">💾 Enviar al CRM</button>
+          </div>
+          <div class="editing-tag" id="editingTag"></div>
+        </section>
+
+        <!-- STEP 7 · NFC -->
+        <section class="step" data-title="NFC">
+          <h3 class="step-title">Grabar chip NFC <span style="color:var(--faint);font-weight:400;font-size:14px">(opcional)</span></h3>
+          <p class="step-help">Graba el enlace en el chip de la tarjeta para que funcione al acercar el teléfono.</p>
+          <div class="group nfc-box" style="border-top:0;margin-top:0;padding-top:0">
+            <label>Escribir chip NFC</label>
+            <button class="b-nfc" id="nfcWrite">📶 Grabar enlace en chip NFC</button>
+            <label class="check"><input type="checkbox" id="nfcLock" /> Bloquear el chip (permanente, no se podrá regrabar)</label>
+            <div class="nfc-status" id="nfcStatus">Acerca un chip NTAG al teléfono y pulsa grabar.</div>
+          </div>
+          <p class="note"><strong>Tip:</strong> el grabado NFC funciona solo en <strong>Chrome para Android</strong> y en <strong>HTTPS</strong>. Tras grabar se verifica el chip. Los iPhone no pueden grabar chips desde el navegador.</p>
+        </section>
+
       </div>
 
-      <div class="group">
-        <label>Nombre del negocio</label>
-        <input type="text" id="biz" value="La Mar de Cortés" />
+      <div class="wiz-nav">
+        <button class="wiz-back" id="wizBack">← Atrás</button>
+        <button class="wiz-next" id="wizNext">Siguiente →</button>
       </div>
-
-      <div class="group">
-        <label>Frase / llamado</label>
-        <input type="text" id="headline" value="Cuéntanos cómo estuvo tu experiencia." />
-        <p class="warn">⚠️ Google prohíbe pedir <strong>solo</strong> reseñas positivas o condicionarlas a una buena experiencia. Usa un llamado neutral.</p>
-      </div>
-
-      <div class="group">
-        <label>Enlace de reseña de Google</label>
-        <div class="link-row">
-          <input type="url" id="link" placeholder="https://g.page/r/XXXX/review" />
-          <button class="gen-btn" id="openGen">🔗 Maps</button>
-        </div>
-        <p class="hint" style="margin-top:8px">¿No tienes el enlace? Pulsa <strong>Maps</strong> y pega la URL de tu negocio en Google Maps.</p>
-      </div>
-
-      <div class="group">
-        <label>Estrellas (decorativas)</label>
-        <select id="stars">
-          <option value="0" selected>Sin estrellas</option>
-          <option value="5">★★★★★ (5)</option>
-          <option value="4">★★★★ (4)</option>
-        </select>
-      </div>
-
-      <div class="group">
-        <label>Tema de color</label>
-        <div class="chips" id="themes"></div>
-        <div class="custom-color">
-          <label>Fondo <input type="color" id="cBg" value="#101418"></label>
-          <label>Acento <input type="color" id="cAcc" value="#c9a24b"></label>
-          <button class="mini" id="applyCustom">Aplicar color</button>
-        </div>
-        <p class="hint" style="margin-top:8px">Elige un preset, deja que el logo genere el tema <strong>Auto</strong>, o crea uno con el selector. El QR siempre queda en alto contraste.</p>
-      </div>
-
-      <div class="group">
-        <label>Producción</label>
-        <label class="check"><input type="checkbox" id="backToggle" checked /> Imprimir reverso con el logo (doble cara)</label>
-        <label class="check"><input type="checkbox" id="cropMarks" checked /> Marcas de corte + sangrado de 3 mm (PDF)</label>
-        <div class="row2" style="margin-top:12px">
-          <div><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700">Copias (lote)</label>
-            <input type="number" id="copies" min="1" max="200" value="1" /></div>
-        </div>
-      </div>
-
-      <div class="btns">
-        <button class="b-print" id="dlPDF">📄 Descargar PDF</button>
-        <button class="b-ghost" id="dlQR">⬇️ QR PNG</button>
-      </div>
-      <div class="btns">
-        <button class="b-ghost" onclick="window.print()">🖨️ Imprimir</button>
-        <button class="b-ghost" id="copyCfg">🔗 Copiar diseño</button>
-      </div>
-      <div class="btns" style="margin-top:10px">
-        <button class="b-crm" id="sendCrm">💾 Enviar al CRM</button>
-      </div>
-      <div class="editing-tag" id="editingTag"></div>
-
-      <div class="group nfc-box">
-        <label>Escribir chip NFC</label>
-        <button class="b-nfc" id="nfcWrite">📶 Grabar enlace en chip NFC</button>
-        <label class="check"><input type="checkbox" id="nfcLock" /> Bloquear el chip (permanente, no se podrá regrabar)</label>
-        <div class="nfc-status" id="nfcStatus">Acerca un chip NTAG al teléfono y pulsa grabar.</div>
-      </div>
-
-      <p class="note"><strong>Tip:</strong> el grabado NFC funciona solo en <strong>Chrome para Android</strong> y en <strong>HTTPS</strong>. Tras grabar se verifica el chip. Los iPhone no pueden grabar chips desde el navegador.</p>
     </aside>
 
     <main class="stage">
@@ -720,7 +795,8 @@
   /* ================= Nav ================= */
   var designerView=document.getElementById('designerView'), crmView=document.getElementById('crmView');
   function showDesigner(){ designerView.style.display='block'; crmView.style.display='none';
-    document.getElementById('navDesign').classList.add('on'); document.getElementById('navCrm').classList.remove('on'); }
+    document.getElementById('navDesign').classList.add('on'); document.getElementById('navCrm').classList.remove('on');
+    if(window.goStep) window.goStep(0); }
   function showCrm(){ designerView.style.display='none'; crmView.style.display='block';
     document.getElementById('navCrm').classList.add('on'); document.getElementById('navDesign').classList.remove('on'); reloadProjects(); }
   document.getElementById('navDesign').onclick=showDesigner;
@@ -1307,6 +1383,34 @@
     stage.addEventListener('pointerleave',function(){card.style.setProperty('--ry','0deg');card.style.setProperty('--rx','0deg');});
   }
   document.getElementById('backToggle').addEventListener('change',function(){document.body.classList.toggle('hide-back',!this.checked);});
+
+  /* ================= Wizard (step-by-step) ================= */
+  (function(){
+    var steps=Array.prototype.slice.call(document.querySelectorAll('.panel .step'));
+    var N=steps.length; if(!N) return;
+    var titles=steps.map(function(s){return s.getAttribute('data-title')||'';});
+    var dotsBox=document.getElementById('wizDots');
+    steps.forEach(function(s,i){
+      var b=document.createElement('button'); b.textContent=(i+1); b.title=titles[i];
+      b.onclick=function(){ window.goStep(i); };
+      dotsBox.appendChild(b);
+    });
+    var idx=0;
+    window.goStep=function(i){
+      idx=Math.max(0,Math.min(N-1,i));
+      steps.forEach(function(s,k){ s.classList.toggle('active',k===idx); });
+      document.getElementById('wizStepNum').textContent='Paso '+(idx+1)+' de '+N;
+      document.getElementById('wizStepName').textContent=titles[idx];
+      document.getElementById('wizBarFill').style.width=((idx+1)/N*100)+'%';
+      Array.prototype.forEach.call(dotsBox.children,function(b,k){ b.classList.toggle('on',k===idx); b.classList.toggle('done',k<idx); });
+      document.getElementById('wizBack').disabled=(idx===0);
+      document.getElementById('wizNext').textContent=(idx===N-1)?'Empezar de nuevo ↺':'Siguiente →';
+      var panel=document.querySelector('.panel'); if(panel) panel.scrollTop=0;
+    };
+    document.getElementById('wizBack').onclick=function(){ window.goStep(idx-1); };
+    document.getElementById('wizNext').onclick=function(){ window.goStep(idx===N-1?0:idx+1); };
+    window.goStep(0);
+  })();
 
   /* ================= Init ================= */
   applyUrlState();

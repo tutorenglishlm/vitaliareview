@@ -453,9 +453,16 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ---------- Print ---------- */
+  #printOverlay{display:none}
   @media print{
     body{background:#fff}
     .panel,.cap,.overlay,.toast,.topbar,#loginView,#crmView,#finView{display:none!important}
+    /* custom-size print: baked card images, one per landscape page, scaled to fit */
+    body.printing-cards .wrap{display:none!important}
+    body.printing-cards #printOverlay{display:block!important}
+    body.printing-cards #printOverlay .pg{height:100vh;display:flex;align-items:center;justify-content:center;page-break-after:always;break-after:page}
+    body.printing-cards #printOverlay .pg:last-child{page-break-after:auto;break-after:auto}
+    body.printing-cards #printOverlay img{max-width:100%;max-height:100%;object-fit:contain;display:block}
     .wrap{display:block}
     .stage{padding:0;display:block}
     .card::before{display:none}
@@ -1275,11 +1282,9 @@
     var canvas=await html2canvas(el,{scale:5,backgroundColor:null,useCORS:true,logging:false});
     el.classList.remove('capturing');return canvas.toDataURL('image/png');
   }
-  async function generatePDF(mode,win){
+  async function generatePDF(){
     var mm=curMM(),trimW=mm.w,trimH=mm.h;
-    // Home-print (mode==='print') = clean, edge-to-edge, no bleed frame or crop marks.
-    // Download PDF still honors the crop-marks/bleed checkbox for print shops.
-    var bleed=(mode!=='print'&&document.getElementById('cropMarks').checked)?3:0;
+    var bleed=document.getElementById('cropMarks').checked?3:0;
     var pageW=trimW+bleed*2,pageH=trimH+bleed*2;
     var copies=Math.max(1,Math.min(200,parseInt(document.getElementById('copies').value,10)||1));
     var withBack=document.getElementById('backToggle').checked;
@@ -1302,13 +1307,7 @@
     }
     for(var i=0;i<copies;i++){drawFace(frontImg);if(backImg)drawFace(backImg);}
     var name=(document.getElementById('biz').value||'tarjeta').trim().replace(/\s+/g,'-').toLowerCase();
-    if(mode==='print'){
-      try{if(doc.autoPrint)doc.autoPrint();}catch(e){}
-      var url=doc.output('bloburl');
-      if(win){win.location.href=url;}else{window.open(url,'_blank');}
-    }else{
-      doc.save('review-card-'+name+'-'+format+'.pdf');
-    }
+    doc.save('review-card-'+name+'-'+format+'.pdf');
   }
   document.getElementById('dlPDF').onclick=async function(){
     var btn=this,old=btn.textContent;btn.textContent="Generando PDF…";btn.disabled=true;
@@ -1793,20 +1792,31 @@
   applyFormat();applyMode();applyDestination();applyTitleFont();applyTheme(THEMES[themeIdx]);sync();
   window.addEventListener('resize',matchHeights);window.addEventListener('load',matchHeights);matchHeights();
   /* ================= Print ================= */
-  // Presets print via the tuned @media-print scale hacks (window.print). Custom sizes are
-  // printed as the exact-size PDF opened in a new tab with autoPrint — jsPDF sets the page
-  // geometry precisely, so there's no fighting the browser's @media print / @page / header
-  // behaviour. (In-document overlay + iframe both proved unreliable across browsers.)
-  document.getElementById('printBtn').addEventListener('click',function(){
+  // Presets keep the original @media-print scale hacks. Custom sizes print baked card
+  // images (backgrounds included → no faded preview) one per LANDSCAPE page, scaled to fit
+  // with object-fit:contain (no distortion). All the print rules are STATIC in the
+  // stylesheet (gated by body.printing-cards) so they engage reliably; only the body class
+  // + overlay images are set in JS, then plain window.print().
+  async function doPrint(){
     if(format!=='custom'){window.print();return;}
+    var imgs=[await captureCard(card)];
+    if(document.getElementById('backToggle').checked)imgs.push(await captureCard(cardBack));
+    var ov=document.getElementById('printOverlay');
+    ov.innerHTML=imgs.map(function(s){return '<div class="pg"><img src="'+s+'"></div>';}).join('');
+    try{await Promise.all([].map.call(ov.querySelectorAll('img'),function(im){return im.decode();}));}catch(e){}
+    function cleanup(){document.body.classList.remove('printing-cards');ov.innerHTML='';window.removeEventListener('afterprint',cleanup);}
+    window.addEventListener('afterprint',cleanup);
+    document.body.classList.add('printing-cards');
+    window.print();
+  }
+  document.getElementById('printBtn').addEventListener('click',function(){
     var b=this,o=b.textContent;b.textContent='Preparando…';b.disabled=true;
-    var win=window.open('','_blank'); // reserve popup inside the click gesture (survives await)
-    generatePDF('print',win)
-      .catch(function(e){if(win)win.close();alert('No se pudo imprimir: '+(e&&e.message?e.message:e));})
+    doPrint().catch(function(e){document.body.classList.remove('printing-cards');alert('No se pudo imprimir: '+(e&&e.message?e.message:e));})
       .finally(function(){b.textContent=o;b.disabled=false;});
   });
   sb.auth.getSession().then(function(res){ if(res.data && res.data.session) showApp(); else showLogin(); });
   sb.auth.onAuthStateChange(function(_evt,session){ if(!session) showLogin(); });
 </script>
+<div id="printOverlay" aria-hidden="true"></div>
 </body>
 </html>

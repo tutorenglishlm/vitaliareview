@@ -485,7 +485,7 @@
     .fmt-tall.card{transform:scale(.9)!important}
     .face:has(.fmt-tall){width:324px}
     .face--back{page-break-before:auto;break-before:auto}
-    @page{size:landscape;margin:12mm}
+    @page{size:landscape;margin:6mm}
   }
 </style>
 </head>
@@ -510,7 +510,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">V</span>
-      <span class="brand-txt"><b>VITALIA</b><em>Review Cards</em></span>
+      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b10</em></span>
     </div>
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
@@ -1279,8 +1279,15 @@
   function cssColorToRgb(str){var m=(str||'').match(/rgba?\(([^)]+)\)/);if(m){var p=m[1].split(',');return [parseInt(p[0]),parseInt(p[1]),parseInt(p[2])];}return [16,20,24];}
   async function captureCard(el){
     el.classList.add('capturing');
-    var canvas=await html2canvas(el,{scale:5,backgroundColor:null,useCORS:true,logging:false});
-    el.classList.remove('capturing');return canvas.toDataURL('image/png');
+    try{
+      // imageTimeout so a slow/CORS-tainted logo (Storage URL) can't hang the capture forever;
+      // hard race timeout as a backstop so the print button never sticks on "Preparando…".
+      var canvas=await Promise.race([
+        html2canvas(el,{scale:5,backgroundColor:null,useCORS:true,logging:false,imageTimeout:4000}),
+        new Promise(function(_,rej){setTimeout(function(){rej(new Error('La captura tardó demasiado (revisa el logo).'));},9000);})
+      ]);
+      return canvas.toDataURL('image/png');
+    }finally{ el.classList.remove('capturing'); }
   }
   async function generatePDF(){
     var mm=curMM(),trimW=mm.w,trimH=mm.h;

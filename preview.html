@@ -1416,17 +1416,27 @@
 
   /* ================= Maps generator ================= */
   var genOverlay=document.getElementById('genOverlay');
+  // feature id 0x<high>:0x<low> -> ChIJ Place ID (protobuf 0a12 09<high> 11<low>, base64url)
+  function le8b(hex){var v=BigInt('0x'+hex),o='';for(var i=0;i<8;i++){o+=String.fromCharCode(Number(v&0xffn));v>>=8n;}return o;}
+  function hexToPlaceId(high,low){
+    var bytes=String.fromCharCode(0x0a,0x12,0x09)+le8b(high)+String.fromCharCode(0x11)+le8b(low);
+    return btoa(bytes).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
   function extractRef(raw){
     var s=(raw||'').trim();if(!s)return null;
     var m=s.match(/writereview\?placeid=([^&\s]+)/i);if(m)return {type:'placeid',val:decodeURIComponent(m[1])};
     if(/g\.page\/.+\/review/i.test(s))return {type:'full',val:s};
-    m=s.match(/[?&]cid=(\d+)/i);if(m)return {type:'placeid',val:m[1]};
-    m=s.match(/ludocid[:=](\d+)/i);if(m)return {type:'placeid',val:m[1]};
-    m=s.match(/(ChI[0-9A-Za-z_-]{20,})/);if(m)return {type:'placeid',val:m[1]};
-    m=s.match(/0x[0-9a-f]+:0x([0-9a-f]+)/i);if(m){try{return {type:'placeid',val:BigInt('0x'+m[1]).toString()};}catch(e){}}
+    m=s.match(/(ChIJ[0-9A-Za-z_-]{18,})/);if(m)return {type:'placeid',val:m[1]};
+    m=s.match(/0x([0-9a-f]+):0x([0-9a-f]+)/i);
+    if(m&&!/^0+$/.test(m[1])){try{return {type:'placeid',val:hexToPlaceId(m[1],m[2])};}catch(e){}}
+    m=s.match(/[?&]cid=(\d+)/i)||s.match(/ludocid[:=](\d+)/i);if(m)return {type:'cid',val:m[1]};
     return null;
   }
-  function buildReviewLink(ref){return ref.type==='full'?ref.val:'https://search.google.com/local/writereview?placeid='+ref.val;}
+  function buildReviewLink(ref){
+    if(ref.type==='full')return ref.val;
+    if(ref.type==='cid')return 'https://www.google.com/maps?cid='+ref.val;
+    return 'https://search.google.com/local/writereview?placeid='+ref.val;
+  }
   document.getElementById('openGen').onclick=function(){genOverlay.classList.add('show');};
   document.getElementById('genClose').onclick=function(){genOverlay.classList.remove('show');};
   genOverlay.addEventListener('click',function(e){if(e.target===genOverlay)genOverlay.classList.remove('show');});

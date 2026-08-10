@@ -4,30 +4,45 @@
 //
 // POST { url: "<any google maps url>" }  ->  { link, ref } | { error }
 
+// Convert a Google "feature id" (0x<high>:0x<low>) into a ChIJ Place ID.
+// Layout (verified against Google's Sydney example): nested protobuf
+// 0a 12 | 09 <high fixed64 LE> | 11 <low fixed64 LE>, base64url, no padding.
+function le8(hex) {
+  let v = BigInt('0x' + hex);
+  const out = [];
+  for (let i = 0; i < 8; i++) { out.push(Number(v & 0xffn)); v >>= 8n; }
+  return out;
+}
+function hexToPlaceId(high, low) {
+  const bytes = [0x0a, 0x12, 0x09].concat(le8(high)).concat([0x11]).concat(le8(low));
+  return Buffer.from(bytes).toString('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 function extractRef(s) {
   s = (s || '').trim();
   if (!s) return null;
   let m = s.match(/writereview\?placeid=([^&\s]+)/i);
   if (m) return { type: 'placeid', val: decodeURIComponent(m[1]) };
   if (/g\.page\/.+\/review/i.test(s)) return { type: 'full', val: s };
-  m = s.match(/[?&]cid=(\d+)/i);
+  // a real ChIJ Place ID already present in the URL
+  m = s.match(/(ChIJ[0-9A-Za-z_-]{18,})/);
   if (m) return { type: 'placeid', val: m[1] };
-  m = s.match(/ludocid[:=](\d+)/i);
-  if (m) return { type: 'placeid', val: m[1] };
-  m = s.match(/(ChI[0-9A-Za-z_-]{20,})/);
-  if (m) return { type: 'placeid', val: m[1] };
-  // hex feature id 0x..:0x<cid>  -> decimal CID (BigInt keeps 64-bit exact)
-  m = s.match(/0x[0-9a-f]+:0x([0-9a-f]+)/i);
-  if (m) {
-    try { return { type: 'placeid', val: BigInt('0x' + m[1]).toString() }; } catch (e) {}
+  // feature id 0x<high>:0x<low>  -> ChIJ Place ID (needs a non-zero high part)
+  m = s.match(/0x([0-9a-f]+):0x([0-9a-f]+)/i);
+  if (m && !/^0+$/.test(m[1])) {
+    try { return { type: 'placeid', val: hexToPlaceId(m[1], m[2]) }; } catch (e) {}
   }
+  // bare CID (no high part) — last resort, opens the business page
+  m = s.match(/[?&]cid=(\d+)/i) || s.match(/ludocid[:=](\d+)/i);
+  if (m) return { type: 'cid', val: m[1] };
   return null;
 }
 
 function buildLink(ref) {
-  return ref.type === 'full'
-    ? ref.val
-    : 'https://search.google.com/local/writereview?placeid=' + ref.val;
+  if (ref.type === 'full') return ref.val;
+  if (ref.type === 'cid') return 'https://www.google.com/maps?cid=' + ref.val;
+  return 'https://search.google.com/local/writereview?placeid=' + ref.val;
 }
 
 // Follow up to `max` redirects manually so we can read every intermediate URL.

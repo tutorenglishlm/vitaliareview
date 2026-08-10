@@ -1130,7 +1130,7 @@
     var img=new Image();
     if(/^https?:/i.test(dataUrl)) img.crossOrigin='anonymous';   // Storage URLs (CORS) → no canvas taint
     img.onload=function(){
-      var S=256,c=document.createElement('canvas');c.width=S;c.height=S;var ctx=c.getContext('2d');ctx.clearRect(0,0,S,S);
+      var S=640,c=document.createElement('canvas');c.width=S;c.height=S;var ctx=c.getContext('2d');ctx.clearRect(0,0,S,S);   // hi-res so the logo stays crisp at 5× capture
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';var scale,w,h;
       if(mode==='cover'){scale=Math.max(S/img.width,S/img.height);}else{scale=Math.min((S*0.84)/img.width,(S*0.84)/img.height);}
       w=img.width*scale;h=img.height*scale;ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
@@ -1277,7 +1277,9 @@
   }
   async function generatePDF(mode,win){
     var mm=curMM(),trimW=mm.w,trimH=mm.h;
-    var bleed=document.getElementById('cropMarks').checked?3:0;
+    // Home-print (mode==='print') = clean, edge-to-edge, no bleed frame or crop marks.
+    // Download PDF still honors the crop-marks/bleed checkbox for print shops.
+    var bleed=(mode!=='print'&&document.getElementById('cropMarks').checked)?3:0;
     var pageW=trimW+bleed*2,pageH=trimH+bleed*2;
     var copies=Math.max(1,Math.min(200,parseInt(document.getElementById('copies').value,10)||1));
     var withBack=document.getElementById('backToggle').checked;

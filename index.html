@@ -453,16 +453,9 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ---------- Print ---------- */
-  #printMount{display:none}
   @media print{
     body{background:#fff}
     .panel,.cap,.overlay,.toast,.topbar,#loginView,#crmView,#finView{display:none!important}
-    /* custom-size print: exact physical sheets, one face per page */
-    body.print-img .wrap{display:none!important}
-    body.print-img #printMount{display:block!important}
-    #printMount .psheet{display:flex;align-items:center;justify-content:center;width:100%}
-    #printMount .psheet:not(:last-child){page-break-after:always;break-after:page}
-    #printMount img{display:block}
     .wrap{display:block}
     .stage{padding:0;display:block}
     .card::before{display:none}
@@ -697,6 +690,9 @@
           <div class="btns">
             <button class="b-ghost" id="printBtn">🖨️ Imprimir</button>
             <button class="b-ghost" id="copyCfg">🔗 Copiar diseño</button>
+          </div>
+          <div class="btns">
+            <button class="b-ghost" id="openLink">↗️ Probar enlace / QR</button>
           </div>
           <div class="btns" style="margin-top:10px">
             <button class="b-crm" id="sendCrm">💾 Enviar al CRM</button>
@@ -1069,9 +1065,11 @@
   }
   function applyCustomDims(){
     // keep on-screen aspect ratio identical to the real mm ratio so the PDF isn't distorted
-    if(format!=='custom'){cards.forEach(function(el){el.style.removeProperty('--cardw');el.style.removeProperty('--cardh');});return;}
-    var w=customMM.w,h=customMM.h,scale=500/Math.max(w,h);
-    cards.forEach(function(el){el.style.setProperty('--cardw',(w*scale).toFixed(1)+'px');el.style.setProperty('--cardh',(h*scale).toFixed(1)+'px');});
+    if(format!=='custom'){cards.forEach(function(el){el.style.removeProperty('--cardw');el.style.removeProperty('--cardh');el.style.width='';el.style.height='';});return;}
+    var w=customMM.w,h=customMM.h,scale=500/Math.max(w,h),pxw=(w*scale).toFixed(1),pxh=(h*scale).toFixed(1);
+    // Set concrete px width/height too — html2canvas (1.4.1) doesn't copy inline CSS
+    // custom properties to its clone, so relying on --cardw/--cardh alone drops the body on capture.
+    cards.forEach(function(el){el.style.setProperty('--cardw',pxw+'px');el.style.setProperty('--cardh',pxh+'px');el.style.width=pxw+'px';el.style.height=pxh+'px';});
   }
   document.querySelectorAll('#format button').forEach(function(b){
     b.onclick=function(){format=b.dataset.fmt;
@@ -1392,6 +1390,11 @@
     if(p.has('back')){var bk=p.get('back')!=='0';document.getElementById('backToggle').checked=bk;document.body.classList.toggle('hide-back',!bk);}
     if(p.has('mode')){mode=p.get('mode');setSeg('mode','mode',mode);}
   }
+  document.getElementById('openLink').onclick=function(){
+    var raw=targetUrl();
+    if(!raw){alert(destination==='whatsapp'?'Primero pon el número de WhatsApp.':destination==='custom'?'Primero pon el enlace.':'Primero pon el enlace de reseña.');return;}
+    window.open(normalizeUrl(raw),'_blank','noopener');
+  };
   document.getElementById('copyCfg').onclick=function(){
     var url=encodeState();
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){toast("Enlace de diseño copiado ✓")},function(){prompt("Copia el enlace:",url)});}
@@ -1782,35 +1785,48 @@
   applyFormat();applyMode();applyDestination();applyTitleFont();applyTheme(THEMES[themeIdx]);sync();
   window.addEventListener('resize',matchHeights);window.addEventListener('load',matchHeights);matchHeights();
   /* ================= Print ================= */
-  // Presets print via the tuned @media-print scale hacks. Custom sizes need true
-  // physical dimensions, so print exact-size captures (one face per page) instead.
+  // Presets print via the tuned @media-print scale hacks. Custom sizes print exact-size
+  // captures inside a dedicated iframe with its own @page — this reliably kills the
+  // browser's header/footer + margins and prints at true physical size, one face per page.
   async function doPrint(){
     if(format!=='custom'){window.print();return;}
-    var mm=curMM(),mount=document.getElementById('printMount');
-    mount.innerHTML='';
-    var frontImg=await captureCard(card);
-    var backImg=document.getElementById('backToggle').checked?await captureCard(cardBack):null;
-    async function addSheet(src){
-      var im=new Image();im.src=src;im.style.width=mm.w+'mm';im.style.height=mm.h+'mm';im.style.display='block';
-      try{await im.decode();}catch(e){}
-      var d=document.createElement('div');d.className='psheet';d.appendChild(im);mount.appendChild(d);
+    var mm=curMM();
+    var imgs=[await captureCard(card)];
+    if(document.getElementById('backToggle').checked)imgs.push(await captureCard(cardBack));
+    var html='<!doctype html><html><head><meta charset="utf-8"><style>'
+      +'@page{size:'+mm.w+'mm '+mm.h+'mm;margin:0}'
+      +'html,body{margin:0;padding:0;background:#fff}'
+      +'.pg{width:'+mm.w+'mm;height:'+mm.h+'mm;overflow:hidden;page-break-after:always;break-after:page}'
+      +'.pg:last-child{page-break-after:auto;break-after:auto}'
+      +'img{width:'+mm.w+'mm;height:'+mm.h+'mm;display:block}'
+      +'</style></head><body>'
+      +imgs.map(function(s){return '<div class="pg"><img src="'+s+'"></div>';}).join('')
+      +'</body></html>';
+    var ifr=document.createElement('iframe');
+    ifr.setAttribute('aria-hidden','true');
+    ifr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(ifr);
+    var d=ifr.contentWindow.document;d.open();d.write(html);d.close();
+    function fire(){
+      try{ifr.contentWindow.focus();ifr.contentWindow.print();}catch(e){}
+      setTimeout(function(){ifr.parentNode&&ifr.parentNode.removeChild(ifr);},2000);
     }
-    await addSheet(frontImg);if(backImg)await addSheet(backImg);
-    var st=document.getElementById('printPageStyle')||document.createElement('style');st.id='printPageStyle';
-    st.textContent='@media print{@page{size:'+mm.w+'mm '+mm.h+'mm;margin:0}}';document.head.appendChild(st);
-    document.body.classList.add('print-img');
-    window.addEventListener('afterprint',function cleanup(){
-      document.body.classList.remove('print-img');mount.innerHTML='';st.textContent='';
-      window.removeEventListener('afterprint',cleanup);
-    });
-    window.print();
+    // wait for the sheet images to finish decoding, then print
+    var list=d.images,total=list.length,done=0,fired=false;
+    function one(){ if(++done>=total&&!fired){fired=true;fire();} }
+    if(total===0){fire();return;}
+    for(var i=0;i<total;i++){var im=list[i];
+      if(im.complete)one();
+      else{im.onload=one;im.onerror=one;}}
+    setTimeout(function(){if(!fired){fired=true;fire();}},2500); // safety net
   }
   document.getElementById('printBtn').addEventListener('click',function(){
-    doPrint().catch(function(e){alert('No se pudo imprimir: '+(e&&e.message?e.message:e));});
+    var b=this,o=b.textContent;b.textContent='Preparando…';b.disabled=true;
+    doPrint().catch(function(e){alert('No se pudo imprimir: '+(e&&e.message?e.message:e));})
+      .finally(function(){b.textContent=o;b.disabled=false;});
   });
   sb.auth.getSession().then(function(res){ if(res.data && res.data.session) showApp(); else showLogin(); });
   sb.auth.onAuthStateChange(function(_evt,session){ if(!session) showLogin(); });
 </script>
-<div id="printMount" aria-hidden="true"></div>
 </body>
 </html>

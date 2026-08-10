@@ -515,7 +515,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">V</span>
-      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b14</em></span>
+      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b15</em></span>
     </div>
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
@@ -1297,11 +1297,12 @@
   async function captureCard(el){
     el.classList.add('capturing');
     try{
-      // Bigger cards preview small relative to their real size, so a flat 5x is low-dpi
-      // (media carta at 5x ≈ 290dpi = blurry). Scale to target ~600dpi at the real physical
-      // size (capped 5..9). Small presets clamp to 5. Applies to all formats.
+      // Scale to target ~600dpi at the real physical size, BUT cap the canvas longest side
+      // at 4000px: GPU-accelerated canvas silently clamps/downsamples anything over ~4096px
+      // (that clamp softened the WHOLE capture on some machines even though the request was
+      // hi-res). 4000px = ~470dpi on media carta — sharp for print and GPU-safe. Presets clamp to 5.
       var mm=curMM(),longestMM=Math.max(mm.w,mm.h),longestPx=Math.max(el.offsetWidth,el.offsetHeight)||500;
-      var scale=Math.max(5,Math.min(9,(longestMM/25.4)*600/longestPx));
+      var scale=Math.max(5,Math.min(9,(longestMM/25.4)*600/longestPx,4000/longestPx));
       // imageTimeout so a slow/CORS logo can't hang the capture; hard race timeout as backstop.
       var canvas=await Promise.race([
         html2canvas(el,{scale:scale,backgroundColor:null,useCORS:true,logging:false,imageTimeout:4000}),

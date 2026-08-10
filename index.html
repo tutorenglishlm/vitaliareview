@@ -244,6 +244,8 @@
     --pad:28px 26px 22px;
     --logo:62px; --mono-fs:25px; --biz-fs:26px; --stars-fs:16px;
     --headline-fs:17px; --qr-size:140px;
+    /* space-between fills any card height even when html2canvas doesn't honor flex:1 on capture */
+    justify-content:space-between;
   }
   .card::before{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
     background-image:

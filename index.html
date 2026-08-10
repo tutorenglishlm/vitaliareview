@@ -239,6 +239,12 @@
     --logo:66px; --mono-fs:26px; --biz-fs:27px; --stars-fs:17px;
     --headline-fs:18px; --qr-size:146px;
   }
+  /* custom size: --cardw/--cardh set inline from cm input; interior scaled for a larger card */
+  .card.fmt-custom{
+    --pad:28px 26px 22px;
+    --logo:62px; --mono-fs:25px; --biz-fs:26px; --stars-fs:16px;
+    --headline-fs:17px; --qr-size:140px;
+  }
   .card::before{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
     background-image:
       repeating-linear-gradient(45deg, rgba(255,255,255,.028) 0 1px, transparent 1px 11px),
@@ -525,8 +531,19 @@
             <div class="seg" id="format">
               <button data-fmt="cr80" class="on">NFC · 54×85.6 mm</button>
               <button data-fmt="tall">Tent · 85.6×122 mm</button>
+              <button data-fmt="custom">Personalizado</button>
             </div>
-            <p class="hint" style="margin-top:8px"><strong>NFC</strong> = tarjeta estándar (CR80), la del chip. <strong>Tent</strong> = tarjeta grande de mesa.</p>
+            <p class="hint" style="margin-top:8px"><strong>NFC</strong> = tarjeta estándar (CR80), la del chip. <strong>Tent</strong> = tarjeta grande de mesa. <strong>Personalizado</strong> = tú defines las medidas.</p>
+            <div id="customSize" style="display:none;margin-top:14px">
+              <label style="font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;font-weight:700;display:block;margin-bottom:9px">Medidas en centímetros</label>
+              <div style="display:flex;align-items:center;gap:9px">
+                <input id="custW" type="number" step="0.01" min="1" max="60" value="13.97" style="flex:1;text-align:center" aria-label="Ancho en cm">
+                <span style="color:var(--faint);font-weight:700">×</span>
+                <input id="custH" type="number" step="0.01" min="1" max="60" value="21.59" style="flex:1;text-align:center" aria-label="Alto en cm">
+                <span style="color:var(--muted);font-size:13px">cm</span>
+              </div>
+              <p class="hint" style="margin-top:8px">Ancho × alto. Ej.: <strong>13.97 × 21.59 cm</strong> (media carta / statement).</p>
+            </div>
           </div>
           <div class="group">
             <label>Modo de la tarjeta</label>
@@ -995,14 +1012,35 @@
   var format="cr80";
   var FMT_MM={cr80:{w:54,h:85.6,label:"54 × 85.6 mm (tarjeta NFC estándar)"},
               tall:{w:85.6,h:122,label:"85.6 × 122 mm (tarjeta de mesa)"}};
+  var customMM={w:139.7,h:215.9};                 // stored in mm; UI is cm (×10)
+  function fmtCm(mm){return (mm/10).toFixed(2).replace(/\.?0+$/,'');}
+  function curMM(){
+    if(format==='custom')return {w:customMM.w,h:customMM.h,label:fmtCm(customMM.w)+" × "+fmtCm(customMM.h)+" cm (personalizado)"};
+    return FMT_MM[format];
+  }
+  function applyCustomDims(){
+    // keep on-screen aspect ratio identical to the real mm ratio so the PDF isn't distorted
+    if(format!=='custom'){cards.forEach(function(el){el.style.removeProperty('--cardw');el.style.removeProperty('--cardh');});return;}
+    var w=customMM.w,h=customMM.h,scale=500/Math.max(w,h);
+    cards.forEach(function(el){el.style.setProperty('--cardw',(w*scale).toFixed(1)+'px');el.style.setProperty('--cardh',(h*scale).toFixed(1)+'px');});
+  }
   document.querySelectorAll('#format button').forEach(function(b){
     b.onclick=function(){format=b.dataset.fmt;
       document.querySelectorAll('#format button').forEach(function(x){x.classList.remove('on')});
       b.classList.add('on');applyFormat();};
   });
+  function readCustomInputs(){
+    var w=parseFloat(document.getElementById('custW').value),h=parseFloat(document.getElementById('custH').value);
+    if(w>0)customMM.w=Math.min(600,w*10);if(h>0)customMM.h=Math.min(600,h*10);
+  }
+  ['custW','custH'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',function(){readCustomInputs();if(format==='custom')applyFormat();});
+  });
   function applyFormat(){
-    cards.forEach(function(el){el.classList.remove('fmt-cr80','fmt-tall');el.classList.add('fmt-'+format);});
-    document.getElementById('sizeCap').textContent="Al exportar sale a "+FMT_MM[format].label+". El PDF incluye sangrado y marcas de corte.";
+    document.getElementById('customSize').style.display=format==='custom'?'block':'none';
+    cards.forEach(function(el){el.classList.remove('fmt-cr80','fmt-tall','fmt-custom');el.classList.add('fmt-'+format);});
+    applyCustomDims();
+    document.getElementById('sizeCap').textContent="Al exportar sale a "+curMM().label+". El PDF incluye sangrado y marcas de corte.";
     matchHeights();
   }
 
@@ -1129,7 +1167,7 @@
     el.classList.remove('capturing');return canvas.toDataURL('image/png');
   }
   async function generatePDF(){
-    var mm=FMT_MM[format],trimW=mm.w,trimH=mm.h;
+    var mm=curMM(),trimW=mm.w,trimH=mm.h;
     var bleed=document.getElementById('cropMarks').checked?3:0;
     var pageW=trimW+bleed*2,pageH=trimH+bleed*2;
     var copies=Math.max(1,Math.min(200,parseInt(document.getElementById('copies').value,10)||1));
@@ -1164,7 +1202,7 @@
 
   /* ================= Config (serialize / hydrate) ================= */
   function getConfig(){
-    return {format:format,mode:mode,
+    return {format:format,mode:mode,custom:{w:customMM.w,h:customMM.h},
       biz:document.getElementById('biz').value,headline:document.getElementById('headline').value,
       link:document.getElementById('link').value,stars:document.getElementById('stars').value,
       back:document.getElementById('backToggle').checked,theme:currentTheme,logo:currentLogoData||null};
@@ -1173,7 +1211,9 @@
     document.querySelectorAll('#'+groupId+' button').forEach(function(b){b.classList.toggle('on',b.dataset[attr]===val);});
   }
   function loadConfig(c){
-    format=(c.format&&FMT_MM[c.format])?c.format:'cr80';setSeg('format','fmt',format);
+    if(c.custom&&c.custom.w>0&&c.custom.h>0){customMM.w=c.custom.w;customMM.h=c.custom.h;
+      document.getElementById('custW').value=fmtCm(customMM.w);document.getElementById('custH').value=fmtCm(customMM.h);}
+    format=(c.format==='custom'||(c.format&&FMT_MM[c.format]))?c.format:'cr80';setSeg('format','fmt',format);
     mode=c.mode||'both';setSeg('mode','mode',mode);
     document.getElementById('biz').value=c.biz||'';
     document.getElementById('headline').value=c.headline||'';
@@ -1195,6 +1235,7 @@
   function encodeState(){
     var p=new URLSearchParams();
     p.set('fmt',format);p.set('mode',mode);
+    if(format==='custom'){p.set('cw',customMM.w);p.set('ch',customMM.h);}
     p.set('biz',document.getElementById('biz').value||'');
     p.set('h',document.getElementById('headline').value||'');
     p.set('link',document.getElementById('link').value||'');
@@ -1204,7 +1245,9 @@
   }
   function applyUrlState(){
     var p=new URLSearchParams(location.search);if(![...p.keys()].length)return;
-    if(p.get('fmt')&&FMT_MM[p.get('fmt')]){format=p.get('fmt');setSeg('format','fmt',format);}
+    if(p.get('cw')>0&&p.get('ch')>0){customMM.w=parseFloat(p.get('cw'));customMM.h=parseFloat(p.get('ch'));
+      document.getElementById('custW').value=fmtCm(customMM.w);document.getElementById('custH').value=fmtCm(customMM.h);}
+    var fq=p.get('fmt');if(fq==='custom'||FMT_MM[fq]){format=fq;setSeg('format','fmt',format);}
     if(p.has('biz'))document.getElementById('biz').value=p.get('biz');
     if(p.has('h'))document.getElementById('headline').value=p.get('h');
     if(p.has('link'))document.getElementById('link').value=p.get('link');

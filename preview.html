@@ -11,7 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <!-- Supabase: auth + shared CRM database -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=DM+Serif+Display:ital@0;1&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0b0a0d; --panel:#151319; --panel2:#1d1a22; --panel3:#26222e;
@@ -270,19 +270,19 @@
     background:linear-gradient(155deg, color-mix(in srgb,var(--c-accent) 26%, transparent), rgba(255,255,255,.04));
     box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 8px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
     background-size:cover;background-position:center}
-  .logo .mono{font-family:"Fraunces",serif;font-weight:600;font-size:var(--mono-fs);color:var(--c-ink);letter-spacing:.02em}
+  .logo .mono{font-family:var(--font-title,"Fraunces",serif);font-weight:600;font-size:var(--mono-fs);color:var(--c-ink);letter-spacing:.02em}
   .logo.has-img .mono{display:none}
   .kicker{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--c-accent);font-weight:700;
     display:flex;align-items:center;gap:8px}
   .kicker::before,.kicker::after{content:"";width:16px;height:1px;background:currentColor;opacity:.6}
-  .biz{font-family:"Fraunces",serif;font-weight:600;font-size:var(--biz-fs);line-height:1.05;letter-spacing:-.015em}
+  .biz{font-family:var(--font-title,"Fraunces",serif);font-weight:600;font-size:var(--biz-fs);line-height:1.05;letter-spacing:-.015em}
   .stars{color:var(--gold);font-size:var(--stars-fs);letter-spacing:4px;margin-top:1px}
   .rule{display:flex;align-items:center;justify-content:center;gap:9px;width:64%;color:var(--c-accent);margin:2px 0}
   .rule::before,.rule::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,currentColor,transparent);opacity:.55}
   .rule i{width:5px;height:5px;transform:rotate(45deg);background:currentColor;flex:0 0 auto}
   .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px}
   .msg{width:100%}
-  .headline{font-family:"Fraunces",serif;font-style:italic;font-weight:500;font-size:var(--headline-fs);line-height:1.3;margin:0 0 10px;color:var(--c-ink)}
+  .headline{font-family:var(--font-title,"Fraunces",serif);font-style:italic;font-weight:500;font-size:var(--headline-fs);line-height:1.3;margin:0 0 10px;color:var(--c-ink)}
   .action{display:inline-flex;justify-content:center;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--c-mut)}
   .action .badge{display:inline-flex;align-items:center;gap:6px;
     background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
@@ -308,6 +308,7 @@
     background:linear-gradient(90deg,#4285F4 0 25%,#ea4335 25% 50%,#fbbc05 50% 75%,#34a853 75%);
     -webkit-background-clip:text;background-clip:text;color:transparent}
   .card.dest-wa .g{background:none;-webkit-text-fill-color:#25D366;color:#25D366}
+  .card.dest-url .g{background:none;-webkit-text-fill-color:var(--c-accent);color:var(--c-accent)}
   .nfc-ring{display:none;align-items:center;gap:6px;font-size:10.5px;color:var(--c-mut);font-weight:700;
     letter-spacing:.12em;text-transform:uppercase}
   .nfc-ring.show{display:flex}
@@ -324,7 +325,7 @@
   .tapbig .ripple::after{animation-delay:1.1s}
   @keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.9);opacity:0}}
   .tapbig .ripple svg{width:44px;height:44px;color:var(--c-bg);position:relative;z-index:1}
-  .tapbig .tapmsg{font-family:"Fraunces",serif;font-style:italic;font-weight:500;font-size:16px;max-width:230px;line-height:1.35}
+  .tapbig .tapmsg{font-family:var(--font-title,"Fraunces",serif);font-style:italic;font-weight:500;font-size:16px;max-width:230px;line-height:1.35}
   @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   .card .head{animation:rise .55s .05s both}
   .card .body{animation:rise .55s .16s both}
@@ -346,7 +347,7 @@
   .back-logo:not(.has-img){
     background:linear-gradient(155deg,color-mix(in srgb,var(--c-accent) 26%,transparent),rgba(255,255,255,.05));
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
-  .back-logo .mono{font-family:"Fraunces",serif;font-weight:600;color:var(--c-ink);
+  .back-logo .mono{font-family:var(--font-title,"Fraunces",serif);font-weight:600;color:var(--c-ink);
     font-size:clamp(70px,24vw,120px);letter-spacing:.02em}
   .back-logo.has-img .mono{display:none}
   .card.capturing{transform:none!important;border-radius:0!important}
@@ -613,8 +614,9 @@
           <div class="group">
             <label>Destino</label>
             <div class="seg" id="destination">
-              <button data-dest="review" class="on">Reseña de Google</button>
+              <button data-dest="review" class="on">Reseña</button>
               <button data-dest="whatsapp">WhatsApp</button>
+              <button data-dest="custom">Enlace</button>
             </div>
           </div>
           <div class="group" id="destReview">
@@ -633,12 +635,28 @@
             <textarea id="waMsg" rows="2">Hola, vi su tarjeta y quiero hacer un pedido.</textarea>
             <p class="hint" style="margin-top:8px">El cliente solo pulsa <strong>enviar</strong>. El QR y el chip NFC abren este chat.</p>
           </div>
+          <div class="group" id="destCustom" style="display:none">
+            <label>Enlace (cualquier URL)</label>
+            <input type="url" id="urlLink" placeholder="https://chat.whatsapp.com/XXXX" />
+            <p class="hint" style="margin:8px 0 16px">Grupo de WhatsApp, menú, Instagram, Linktree… lo que sea. El QR y el chip NFC abren este enlace.</p>
+            <label>Textos de la tarjeta</label>
+            <input type="text" id="urlKicker" placeholder="Etiqueta superior (ej. Únete al grupo)" value="Únete al grupo" style="margin-bottom:8px" />
+            <input type="text" id="urlQrLabel" placeholder="Texto bajo el QR" value="Escanea para unirte" style="margin-bottom:8px" />
+            <input type="text" id="urlTapMsg" placeholder="Texto al acercar el teléfono" value="Acerca tu teléfono para unirte al grupo" style="margin-bottom:8px" />
+            <input type="text" id="urlFoot" placeholder="Texto del pie" value="Grupo de WhatsApp" />
+            <p class="hint" style="margin-top:8px">La <strong>frase principal</strong> se edita en el paso <strong>Negocio</strong>. Estos campos controlan el resto de la tarjeta.</p>
+          </div>
         </section>
 
         <!-- STEP 5 · Estilo -->
         <section class="step" data-title="Estilo">
-          <h3 class="step-title">Estrellas y color</h3>
-          <p class="step-help">Ajusta las estrellas decorativas y el tema de color de la tarjeta.</p>
+          <h3 class="step-title">Tipografía, estrellas y color</h3>
+          <p class="step-help">Elige la fuente de los títulos, las estrellas decorativas y el tema de color.</p>
+          <div class="group">
+            <label>Fuente de títulos y encabezados</label>
+            <select id="titleFont"></select>
+            <p class="hint" style="margin-top:8px">Aplica al nombre del negocio, la frase y el monograma del logo.</p>
+          </div>
           <div class="group">
             <label>Estrellas (decorativas)</label>
             <select id="stars">
@@ -1083,7 +1101,7 @@
       b.classList.add('on');applyMode();};
   });
   function applyMode(){
-    card.className='card fmt-'+format+' mode-'+mode+(destination==='whatsapp'?' dest-wa':'');
+    card.className='card fmt-'+format+' mode-'+mode+(destination==='whatsapp'?' dest-wa':'')+(destination==='custom'?' dest-url':'');
     var tapOn=mode==='both'||mode==='tap';
     document.getElementById('c-qrwrap').classList.toggle('show',mode!=='tap');
     document.getElementById('badge-tap').style.display=(mode==='tap'||mode==='both')?'inline-flex':'none';
@@ -1174,7 +1192,7 @@
     document.getElementById(id).addEventListener('change',sync);
   });
 
-  /* ================= Destination (Reseña / WhatsApp) ================= */
+  /* ================= Destination (Reseña / WhatsApp / Enlace) ================= */
   var destination="review";
   function waUrl(){
     var num=(document.getElementById('waNum').value||'').replace(/\D/g,'');
@@ -1182,16 +1200,30 @@
     var msg=(document.getElementById('waMsg').value||'').trim();
     return 'https://wa.me/'+num+(msg?'?text='+encodeURIComponent(msg):'');
   }
-  function targetUrl(){ return destination==='whatsapp'?waUrl():(document.getElementById('link').value||''); }
+  function targetUrl(){
+    if(destination==='whatsapp')return waUrl();
+    if(destination==='custom')return document.getElementById('urlLink').value||'';
+    return document.getElementById('link').value||'';
+  }
+  function esch(s){return (s||'').replace(/[&<>]/g,function(c){return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;';});}
   function applyDestination(){
-    var wa=destination==='whatsapp';
-    document.getElementById('destReview').style.display=wa?'none':'block';
+    var wa=destination==='whatsapp',cu=destination==='custom';
+    document.getElementById('destReview').style.display=(wa||cu)?'none':'block';
     document.getElementById('destWhatsapp').style.display=wa?'block':'none';
+    document.getElementById('destCustom').style.display=cu?'block':'none';
     card.classList.toggle('dest-wa',wa);
-    card.querySelector('.kicker').textContent=wa?'WhatsApp':'Reseña Google';
-    card.querySelector('.qrlabel').textContent=wa?'Escanea para escribirnos':'Escanea para calificarnos';
-    card.querySelector('.tapmsg').textContent=wa?'Acerca tu teléfono para escribirnos por WhatsApp':'Acerca tu teléfono para dejar tu reseña';
-    card.querySelector('.gline').innerHTML=wa?'Escríbenos por <span class="g">WhatsApp</span>':'Reseña en <span class="g">Google</span>';
+    card.classList.toggle('dest-url',cu);
+    if(cu){
+      card.querySelector('.kicker').textContent=document.getElementById('urlKicker').value||'Enlace';
+      card.querySelector('.qrlabel').textContent=document.getElementById('urlQrLabel').value||'Escanea para abrir';
+      card.querySelector('.tapmsg').textContent=document.getElementById('urlTapMsg').value||'Acerca tu teléfono para abrir el enlace';
+      card.querySelector('.gline').innerHTML='<span class="g">'+esch(document.getElementById('urlFoot').value||'Enlace')+'</span>';
+    }else{
+      card.querySelector('.kicker').textContent=wa?'WhatsApp':'Reseña Google';
+      card.querySelector('.qrlabel').textContent=wa?'Escanea para escribirnos':'Escanea para calificarnos';
+      card.querySelector('.tapmsg').textContent=wa?'Acerca tu teléfono para escribirnos por WhatsApp':'Acerca tu teléfono para dejar tu reseña';
+      card.querySelector('.gline').innerHTML=wa?'Escríbenos por <span class="g">WhatsApp</span>':'Reseña en <span class="g">Google</span>';
+    }
     sync();
   }
   document.querySelectorAll('#destination button').forEach(function(b){
@@ -1199,12 +1231,31 @@
       document.querySelectorAll('#destination button').forEach(function(x){x.classList.remove('on')});
       b.classList.add('on');applyDestination();};
   });
-  ['waNum','waMsg'].forEach(function(id){document.getElementById(id).addEventListener('input',sync);});
+  ['waNum','waMsg','urlLink'].forEach(function(id){document.getElementById(id).addEventListener('input',sync);});
+  ['urlKicker','urlQrLabel','urlTapMsg','urlFoot'].forEach(function(id){document.getElementById(id).addEventListener('input',applyDestination);});
+
+  /* ================= Title font ================= */
+  var FONTS=[
+    {n:'Fraunces (por defecto)',css:'"Fraunces",serif'},
+    {n:'Playfair Display',css:'"Playfair Display",serif'},
+    {n:'Cormorant Garamond',css:'"Cormorant Garamond",serif'},
+    {n:'DM Serif Display',css:'"DM Serif Display",serif'},
+    {n:'Lora',css:'"Lora",serif'},
+    {n:'Poppins',css:'"Poppins",sans-serif'},
+    {n:'Montserrat',css:'"Montserrat",sans-serif'},
+    {n:'Oswald',css:'"Oswald",sans-serif'},
+    {n:'Bebas Neue',css:'"Bebas Neue",sans-serif'},
+    {n:'Space Grotesk',css:'"Space Grotesk",sans-serif'}
+  ];
+  var titleFont=FONTS[0].css;
+  (function(){var sel=document.getElementById('titleFont');FONTS.forEach(function(f){var o=document.createElement('option');o.value=f.css;o.textContent=f.n;o.style.fontFamily=f.css;sel.appendChild(o);});})();
+  function applyTitleFont(){cards.forEach(function(el){el.style.setProperty('--font-title',titleFont);});matchHeights();}
+  document.getElementById('titleFont').addEventListener('change',function(){titleFont=this.value;applyTitleFont();});
 
   /* ================= QR PNG (high-res) ================= */
   document.getElementById('dlQR').onclick=function(){
     var raw=targetUrl();
-    if(!raw){alert(destination==='whatsapp'?'Primero pon el número de WhatsApp.':'Primero pon el enlace de reseña.');return;}
+    if(!raw){alert(destination==='whatsapp'?'Primero pon el número de WhatsApp.':destination==='custom'?'Primero pon el enlace.':'Primero pon el enlace de reseña.');return;}
     var val=normalizeUrl(raw);
     try{
       var qr=buildQR(val);
@@ -1212,7 +1263,7 @@
       img.onload=function(){
         var c=document.createElement('canvas');c.width=img.width;c.height=img.height;
         var ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0);
-        var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=(destination==='whatsapp'?'whatsapp-qr.png':'google-review-qr.png');a.click();
+        var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=(destination==='whatsapp'?'whatsapp-qr.png':destination==='custom'?'qr.png':'google-review-qr.png');a.click();
       };
       img.onerror=function(){alert('No se pudo generar el QR.');};
       img.src=qr.createDataURL(16,4);   // GIF data URL, cellSize 16, margin 4 → crisp
@@ -1264,6 +1315,9 @@
   function getConfig(){
     return {format:format,mode:mode,custom:{w:customMM.w,h:customMM.h},destination:destination,
       waNum:document.getElementById('waNum').value,waMsg:document.getElementById('waMsg').value,
+      urlLink:document.getElementById('urlLink').value,urlKicker:document.getElementById('urlKicker').value,
+      urlQrLabel:document.getElementById('urlQrLabel').value,urlTapMsg:document.getElementById('urlTapMsg').value,
+      urlFoot:document.getElementById('urlFoot').value,titleFont:titleFont,
       biz:document.getElementById('biz').value,headline:document.getElementById('headline').value,
       link:document.getElementById('link').value,stars:document.getElementById('stars').value,
       back:document.getElementById('backToggle').checked,theme:currentTheme,logo:currentLogoData||null};
@@ -1281,7 +1335,13 @@
     document.getElementById('link').value=c.link||'';
     if(c.waNum!==undefined)document.getElementById('waNum').value=c.waNum||'';
     if(c.waMsg!==undefined)document.getElementById('waMsg').value=c.waMsg||'';
-    destination=(c.destination==='whatsapp')?'whatsapp':'review';setSeg('destination','dest',destination);
+    if(c.urlLink!==undefined)document.getElementById('urlLink').value=c.urlLink||'';
+    if(c.urlKicker!==undefined)document.getElementById('urlKicker').value=c.urlKicker||'';
+    if(c.urlQrLabel!==undefined)document.getElementById('urlQrLabel').value=c.urlQrLabel||'';
+    if(c.urlTapMsg!==undefined)document.getElementById('urlTapMsg').value=c.urlTapMsg||'';
+    if(c.urlFoot!==undefined)document.getElementById('urlFoot').value=c.urlFoot||'';
+    if(c.titleFont){titleFont=c.titleFont;document.getElementById('titleFont').value=titleFont;}
+    destination=(c.destination==='whatsapp'||c.destination==='custom')?c.destination:'review';setSeg('destination','dest',destination);
     document.getElementById('stars').value=c.stars||'0';
     var back=c.back!==false;document.getElementById('backToggle').checked=back;
     document.body.classList.toggle('hide-back',!back);
@@ -1290,7 +1350,7 @@
       document.getElementById('logoActions').style.display='flex';document.getElementById('logoFit').style.display='block';
       document.getElementById('dropTxt').textContent="Logo cargado ✓";}
     else clearLogoUI();
-    applyFormat();applyMode();applyDestination();
+    applyFormat();applyMode();applyDestination();applyTitleFont();
     if(c.theme)applyTheme(c.theme);
     sync();
   }
@@ -1305,7 +1365,9 @@
     p.set('link',document.getElementById('link').value||'');
     p.set('dest',destination);
     if(destination==='whatsapp'){p.set('wn',document.getElementById('waNum').value||'');p.set('wm',document.getElementById('waMsg').value||'');}
+    if(destination==='custom'){p.set('ul',document.getElementById('urlLink').value||'');p.set('uk',document.getElementById('urlKicker').value||'');p.set('uq',document.getElementById('urlQrLabel').value||'');p.set('ut',document.getElementById('urlTapMsg').value||'');p.set('uf',document.getElementById('urlFoot').value||'');}
     p.set('stars',document.getElementById('stars').value||'0');
+    p.set('tf',titleFont);
     p.set('back',document.getElementById('backToggle').checked?'1':'0');
     return location.origin+location.pathname+'?'+p.toString();
   }
@@ -1319,8 +1381,14 @@
     if(p.has('link'))document.getElementById('link').value=p.get('link');
     if(p.has('wn'))document.getElementById('waNum').value=p.get('wn');
     if(p.has('wm'))document.getElementById('waMsg').value=p.get('wm');
-    if(p.get('dest')==='whatsapp'){destination='whatsapp';setSeg('destination','dest',destination);}
+    if(p.has('ul'))document.getElementById('urlLink').value=p.get('ul');
+    if(p.has('uk'))document.getElementById('urlKicker').value=p.get('uk');
+    if(p.has('uq'))document.getElementById('urlQrLabel').value=p.get('uq');
+    if(p.has('ut'))document.getElementById('urlTapMsg').value=p.get('ut');
+    if(p.has('uf'))document.getElementById('urlFoot').value=p.get('uf');
+    if(p.get('dest')==='whatsapp'||p.get('dest')==='custom'){destination=p.get('dest');setSeg('destination','dest',destination);}
     if(p.has('stars'))document.getElementById('stars').value=p.get('stars');
+    if(p.has('tf')){titleFont=p.get('tf');document.getElementById('titleFont').value=titleFont;}
     if(p.has('back')){var bk=p.get('back')!=='0';document.getElementById('backToggle').checked=bk;document.body.classList.toggle('hide-back',!bk);}
     if(p.has('mode')){mode=p.get('mode');setSeg('mode','mode',mode);}
   }
@@ -1644,7 +1712,7 @@
   }
   nfcBtn.addEventListener('click',async function(){
     var url=targetUrl().trim();
-    if(!url){setNfc(destination==='whatsapp'?"Primero pon el número de WhatsApp arriba.":"Primero pon tu enlace de reseña de Google arriba.",'err');return;}
+    if(!url){setNfc(destination==='whatsapp'?"Primero pon el número de WhatsApp arriba.":destination==='custom'?"Primero pon el enlace arriba.":"Primero pon tu enlace de reseña de Google arriba.",'err');return;}
     url=normalizeUrl(url);
     if(!('NDEFReader' in window)){setNfc("Grabado NFC no disponible en este dispositivo/navegador.",'err');return;}
     var lock=document.getElementById('nfcLock').checked;
@@ -1658,7 +1726,7 @@
       var ok=await verifyChip(url);
       if(lock){try{await ndef.makeReadOnly();setNfc("✓ Chip grabado, verificado y BLOQUEADO.",'ok');}
         catch(le){setNfc("✓ Grabado y verificado, pero no se pudo bloquear: "+(le&&le.message?le.message:le),'ok');}}
-      else setNfc(ok?("✓ ¡Chip grabado y verificado! Ya apunta a "+(destination==='whatsapp'?'tu WhatsApp.':'tu reseña.')):"✓ Chip grabado. No se pudo verificar automáticamente — pruébalo acercando el teléfono.",ok?'ok':'');
+      else setNfc(ok?("✓ ¡Chip grabado y verificado! Ya apunta a "+(destination==='whatsapp'?'tu WhatsApp.':destination==='custom'?'tu enlace.':'tu reseña.')):"✓ Chip grabado. No se pudo verificar automáticamente — pruébalo acercando el teléfono.",ok?'ok':'');
       nfcBtn.textContent="✓ Listo — grabar otro";
     }catch(e){
       var nm=e&&e.name?e.name+': ':'';var m=e&&e.message?e.message:e;
@@ -1711,7 +1779,7 @@
 
   /* ================= Init ================= */
   applyUrlState();
-  applyFormat();applyMode();applyDestination();applyTheme(THEMES[themeIdx]);sync();
+  applyFormat();applyMode();applyDestination();applyTitleFont();applyTheme(THEMES[themeIdx]);sync();
   window.addEventListener('resize',matchHeights);window.addEventListener('load',matchHeights);matchHeights();
   /* ================= Print ================= */
   // Presets print via the tuned @media-print scale hacks. Custom sizes need true

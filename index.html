@@ -510,7 +510,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">V</span>
-      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b10</em></span>
+      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b11</em></span>
     </div>
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
@@ -1137,7 +1137,7 @@
     var img=new Image();
     if(/^https?:/i.test(dataUrl)) img.crossOrigin='anonymous';   // Storage URLs (CORS) → no canvas taint
     img.onload=function(){
-      var S=640,c=document.createElement('canvas');c.width=S;c.height=S;var ctx=c.getContext('2d');ctx.clearRect(0,0,S,S);   // hi-res so the logo stays crisp at 5× capture
+      var S=1024,c=document.createElement('canvas');c.width=S;c.height=S;var ctx=c.getContext('2d');ctx.clearRect(0,0,S,S);   // hi-res so the logo stays crisp at high-scale capture
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';var scale,w,h;
       if(mode==='cover'){scale=Math.max(S/img.width,S/img.height);}else{scale=Math.min((S*0.84)/img.width,(S*0.84)/img.height);}
       w=img.width*scale;h=img.height*scale;ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
@@ -1280,11 +1280,17 @@
   async function captureCard(el){
     el.classList.add('capturing');
     try{
-      // imageTimeout so a slow/CORS-tainted logo (Storage URL) can't hang the capture forever;
-      // hard race timeout as a backstop so the print button never sticks on "Preparando…".
+      // Custom cards preview small (~500px) but print LARGE, so 5x is only ~290dpi (blurry).
+      // Scale up to hit ~600dpi at the real physical size (capped so we don't blow up memory).
+      var scale=5;
+      if(format==='custom'){
+        var mm=curMM(),longestMM=Math.max(mm.w,mm.h),longestPx=Math.max(el.offsetWidth,el.offsetHeight)||500;
+        scale=Math.max(5,Math.min(9,(longestMM/25.4)*600/longestPx));
+      }
+      // imageTimeout so a slow/CORS logo can't hang the capture; hard race timeout as backstop.
       var canvas=await Promise.race([
-        html2canvas(el,{scale:5,backgroundColor:null,useCORS:true,logging:false,imageTimeout:4000}),
-        new Promise(function(_,rej){setTimeout(function(){rej(new Error('La captura tardó demasiado (revisa el logo).'));},9000);})
+        html2canvas(el,{scale:scale,backgroundColor:null,useCORS:true,logging:false,imageTimeout:4000}),
+        new Promise(function(_,rej){setTimeout(function(){rej(new Error('La captura tardó demasiado (revisa el logo).'));},20000);})
       ]);
       return canvas.toDataURL('image/png');
     }finally{ el.classList.remove('capturing'); }

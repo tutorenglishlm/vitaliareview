@@ -305,6 +305,7 @@
   .g{font-weight:800;font-size:12.5px;font-family:"Manrope",sans-serif;
     background:linear-gradient(90deg,#4285F4 0 25%,#ea4335 25% 50%,#fbbc05 50% 75%,#34a853 75%);
     -webkit-background-clip:text;background-clip:text;color:transparent}
+  .card.dest-wa .g{background:none;-webkit-text-fill-color:#25D366;color:#25D366}
   .nfc-ring{display:none;align-items:center;gap:6px;font-size:10.5px;color:var(--c-mut);font-weight:700;
     letter-spacing:.12em;text-transform:uppercase}
   .nfc-ring.show{display:flex}
@@ -596,17 +597,32 @@
           </div>
         </section>
 
-        <!-- STEP 4 · Enlace -->
-        <section class="step" data-title="Enlace">
-          <h3 class="step-title">Enlace de Google</h3>
-          <p class="step-help">Pega el enlace de reseña del negocio. ¿No lo tienes? Pulsa <strong>Maps</strong> y pega la URL de Google Maps.</p>
+        <!-- STEP 4 · Destino -->
+        <section class="step" data-title="Destino">
+          <h3 class="step-title">¿A dónde llevará la tarjeta?</h3>
+          <p class="step-help">Elige el destino del QR y del chip NFC. La tarjeta ajusta sus textos automáticamente.</p>
           <div class="group">
+            <label>Destino</label>
+            <div class="seg" id="destination">
+              <button data-dest="review" class="on">Reseña de Google</button>
+              <button data-dest="whatsapp">WhatsApp</button>
+            </div>
+          </div>
+          <div class="group" id="destReview">
             <label>Enlace de reseña de Google</label>
             <div class="link-row">
               <input type="url" id="link" placeholder="https://g.page/r/XXXX/review" />
               <button class="gen-btn" id="openGen">🔗 Maps</button>
             </div>
             <p class="hint" style="margin-top:8px">Este enlace es el que abre el QR y se graba en el chip NFC.</p>
+          </div>
+          <div class="group" id="destWhatsapp" style="display:none">
+            <label>Número de WhatsApp</label>
+            <input type="tel" id="waNum" placeholder="52 668 123 4567" />
+            <p class="hint" style="margin:8px 0 16px">Incluye la <strong>clave de país</strong> (México = 52). Se ignoran espacios y signos.</p>
+            <label>Mensaje predefinido <span style="color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <textarea id="waMsg" rows="2">Hola, vi su tarjeta y quiero hacer un pedido.</textarea>
+            <p class="hint" style="margin-top:8px">El cliente solo pulsa <strong>enviar</strong>. El QR y el chip NFC abren este chat.</p>
           </div>
         </section>
 
@@ -925,7 +941,7 @@
       el.style.setProperty('--c-mut',t.mut);
       el.style.setProperty('--c-accent',t.accent);
     });
-    renderQR(document.getElementById('link').value);
+    renderQR(targetUrl());
   }
   (function buildThemes(){
     var box=document.getElementById('themes');
@@ -1052,7 +1068,7 @@
       b.classList.add('on');applyMode();};
   });
   function applyMode(){
-    card.className='card fmt-'+format+' mode-'+mode;
+    card.className='card fmt-'+format+' mode-'+mode+(destination==='whatsapp'?' dest-wa':'');
     var tapOn=mode==='both'||mode==='tap';
     document.getElementById('c-qrwrap').classList.toggle('show',mode!=='tap');
     document.getElementById('badge-tap').style.display=(mode==='tap'||mode==='both')?'inline-flex':'none';
@@ -1136,27 +1152,56 @@
     document.getElementById('c-headline').textContent=document.getElementById('headline').value;
     var s=parseInt(document.getElementById('stars').value,10);
     var el=document.getElementById('c-stars');el.style.display=s>0?'block':'none';if(s>0)el.textContent=starsStr(s);
-    renderQR(document.getElementById('link').value);matchHeights();
+    renderQR(targetUrl());matchHeights();
   }
   ['biz','headline','link','stars'].forEach(function(id){
     document.getElementById(id).addEventListener('input',sync);
     document.getElementById(id).addEventListener('change',sync);
   });
 
+  /* ================= Destination (Reseña / WhatsApp) ================= */
+  var destination="review";
+  function waUrl(){
+    var num=(document.getElementById('waNum').value||'').replace(/\D/g,'');
+    if(!num)return '';
+    var msg=(document.getElementById('waMsg').value||'').trim();
+    return 'https://wa.me/'+num+(msg?'?text='+encodeURIComponent(msg):'');
+  }
+  function targetUrl(){ return destination==='whatsapp'?waUrl():(document.getElementById('link').value||''); }
+  function applyDestination(){
+    var wa=destination==='whatsapp';
+    document.getElementById('destReview').style.display=wa?'none':'block';
+    document.getElementById('destWhatsapp').style.display=wa?'block':'none';
+    card.classList.toggle('dest-wa',wa);
+    card.querySelector('.kicker').textContent=wa?'WhatsApp':'Reseña Google';
+    card.querySelector('.qrlabel').textContent=wa?'Escanea para escribirnos':'Escanea para calificarnos';
+    card.querySelector('.tapmsg').textContent=wa?'Acerca tu teléfono para escribirnos por WhatsApp':'Acerca tu teléfono para dejar tu reseña';
+    card.querySelector('.gline').innerHTML=wa?'Escríbenos por <span class="g">WhatsApp</span>':'Reseña en <span class="g">Google</span>';
+    sync();
+  }
+  document.querySelectorAll('#destination button').forEach(function(b){
+    b.onclick=function(){destination=b.dataset.dest;
+      document.querySelectorAll('#destination button').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on');applyDestination();};
+  });
+  ['waNum','waMsg'].forEach(function(id){document.getElementById(id).addEventListener('input',sync);});
+
   /* ================= QR PNG (high-res) ================= */
   document.getElementById('dlQR').onclick=function(){
-    var val=normalizeUrl(document.getElementById('link').value);
+    var raw=targetUrl();
+    if(!raw){alert(destination==='whatsapp'?'Primero pon el número de WhatsApp.':'Primero pon el enlace de reseña.');return;}
+    var val=normalizeUrl(raw);
     try{
       var qr=buildQR(val);
       var img=new Image();
       img.onload=function(){
         var c=document.createElement('canvas');c.width=img.width;c.height=img.height;
         var ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0);
-        var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='google-review-qr.png';a.click();
+        var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download=(destination==='whatsapp'?'whatsapp-qr.png':'google-review-qr.png');a.click();
       };
       img.onerror=function(){alert('No se pudo generar el QR.');};
       img.src=qr.createDataURL(16,4);   // GIF data URL, cellSize 16, margin 4 → crisp
-    }catch(e){ alert('Primero pon el enlace de reseña.'); }
+    }catch(e){ alert('No se pudo generar el QR.'); }
   };
 
   /* ================= PDF ================= */
@@ -1202,7 +1247,8 @@
 
   /* ================= Config (serialize / hydrate) ================= */
   function getConfig(){
-    return {format:format,mode:mode,custom:{w:customMM.w,h:customMM.h},
+    return {format:format,mode:mode,custom:{w:customMM.w,h:customMM.h},destination:destination,
+      waNum:document.getElementById('waNum').value,waMsg:document.getElementById('waMsg').value,
       biz:document.getElementById('biz').value,headline:document.getElementById('headline').value,
       link:document.getElementById('link').value,stars:document.getElementById('stars').value,
       back:document.getElementById('backToggle').checked,theme:currentTheme,logo:currentLogoData||null};
@@ -1218,6 +1264,9 @@
     document.getElementById('biz').value=c.biz||'';
     document.getElementById('headline').value=c.headline||'';
     document.getElementById('link').value=c.link||'';
+    if(c.waNum!==undefined)document.getElementById('waNum').value=c.waNum||'';
+    if(c.waMsg!==undefined)document.getElementById('waMsg').value=c.waMsg||'';
+    destination=(c.destination==='whatsapp')?'whatsapp':'review';setSeg('destination','dest',destination);
     document.getElementById('stars').value=c.stars||'0';
     var back=c.back!==false;document.getElementById('backToggle').checked=back;
     document.body.classList.toggle('hide-back',!back);
@@ -1226,7 +1275,7 @@
       document.getElementById('logoActions').style.display='flex';document.getElementById('logoFit').style.display='block';
       document.getElementById('dropTxt').textContent="Logo cargado ✓";}
     else clearLogoUI();
-    applyFormat();applyMode();
+    applyFormat();applyMode();applyDestination();
     if(c.theme)applyTheme(c.theme);
     sync();
   }
@@ -1239,6 +1288,8 @@
     p.set('biz',document.getElementById('biz').value||'');
     p.set('h',document.getElementById('headline').value||'');
     p.set('link',document.getElementById('link').value||'');
+    p.set('dest',destination);
+    if(destination==='whatsapp'){p.set('wn',document.getElementById('waNum').value||'');p.set('wm',document.getElementById('waMsg').value||'');}
     p.set('stars',document.getElementById('stars').value||'0');
     p.set('back',document.getElementById('backToggle').checked?'1':'0');
     return location.origin+location.pathname+'?'+p.toString();
@@ -1251,6 +1302,9 @@
     if(p.has('biz'))document.getElementById('biz').value=p.get('biz');
     if(p.has('h'))document.getElementById('headline').value=p.get('h');
     if(p.has('link'))document.getElementById('link').value=p.get('link');
+    if(p.has('wn'))document.getElementById('waNum').value=p.get('wn');
+    if(p.has('wm'))document.getElementById('waMsg').value=p.get('wm');
+    if(p.get('dest')==='whatsapp'){destination='whatsapp';setSeg('destination','dest',destination);}
     if(p.has('stars'))document.getElementById('stars').value=p.get('stars');
     if(p.has('back')){var bk=p.get('back')!=='0';document.getElementById('backToggle').checked=bk;document.body.classList.toggle('hide-back',!bk);}
     if(p.has('mode')){mode=p.get('mode');setSeg('mode','mode',mode);}
@@ -1574,8 +1628,8 @@
       }catch(e){resolve(false);}});
   }
   nfcBtn.addEventListener('click',async function(){
-    var url=document.getElementById('link').value.trim();
-    if(!url){setNfc("Primero pon tu enlace de reseña de Google arriba.",'err');return;}
+    var url=targetUrl().trim();
+    if(!url){setNfc(destination==='whatsapp'?"Primero pon el número de WhatsApp arriba.":"Primero pon tu enlace de reseña de Google arriba.",'err');return;}
     url=normalizeUrl(url);
     if(!('NDEFReader' in window)){setNfc("Grabado NFC no disponible en este dispositivo/navegador.",'err');return;}
     var lock=document.getElementById('nfcLock').checked;
@@ -1589,7 +1643,7 @@
       var ok=await verifyChip(url);
       if(lock){try{await ndef.makeReadOnly();setNfc("✓ Chip grabado, verificado y BLOQUEADO.",'ok');}
         catch(le){setNfc("✓ Grabado y verificado, pero no se pudo bloquear: "+(le&&le.message?le.message:le),'ok');}}
-      else setNfc(ok?"✓ ¡Chip grabado y verificado! Ya apunta a tu reseña.":"✓ Chip grabado. No se pudo verificar automáticamente — pruébalo acercando el teléfono.",ok?'ok':'');
+      else setNfc(ok?("✓ ¡Chip grabado y verificado! Ya apunta a "+(destination==='whatsapp'?'tu WhatsApp.':'tu reseña.')):"✓ Chip grabado. No se pudo verificar automáticamente — pruébalo acercando el teléfono.",ok?'ok':'');
       nfcBtn.textContent="✓ Listo — grabar otro";
     }catch(e){
       var nm=e&&e.name?e.name+': ':'';var m=e&&e.message?e.message:e;
@@ -1642,7 +1696,7 @@
 
   /* ================= Init ================= */
   applyUrlState();
-  applyFormat();applyMode();applyTheme(THEMES[themeIdx]);sync();
+  applyFormat();applyMode();applyDestination();applyTheme(THEMES[themeIdx]);sync();
   window.addEventListener('resize',matchHeights);window.addEventListener('load',matchHeights);matchHeights();
   sb.auth.getSession().then(function(res){ if(res.data && res.data.session) showApp(); else showLogin(); });
   sb.auth.onAuthStateChange(function(_evt,session){ if(!session) showLogin(); });

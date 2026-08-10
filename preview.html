@@ -450,9 +450,16 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ---------- Print ---------- */
+  #printMount{display:none}
   @media print{
     body{background:#fff}
     .panel,.cap,.overlay,.toast,.topbar,#loginView,#crmView,#finView{display:none!important}
+    /* custom-size print: exact physical sheets, one face per page */
+    body.print-img .wrap{display:none!important}
+    body.print-img #printMount{display:block!important}
+    #printMount .psheet{display:flex;align-items:center;justify-content:center;width:100%}
+    #printMount .psheet:not(:last-child){page-break-after:always;break-after:page}
+    #printMount img{display:block}
     .wrap{display:block}
     .stage{padding:0;display:block}
     .card::before{display:none}
@@ -668,7 +675,7 @@
             <button class="b-ghost" id="dlQR">⬇️ QR PNG</button>
           </div>
           <div class="btns">
-            <button class="b-ghost" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="b-ghost" id="printBtn">🖨️ Imprimir</button>
             <button class="b-ghost" id="copyCfg">🔗 Copiar diseño</button>
           </div>
           <div class="btns" style="margin-top:10px">
@@ -941,7 +948,7 @@
       el.style.setProperty('--c-mut',t.mut);
       el.style.setProperty('--c-accent',t.accent);
     });
-    renderQR(document.getElementById('link').value);
+    renderQR(targetUrl());
   }
   (function buildThemes(){
     var box=document.getElementById('themes');
@@ -1033,6 +1040,12 @@
   function curMM(){
     if(format==='custom')return {w:customMM.w,h:customMM.h,label:fmtCm(customMM.w)+" × "+fmtCm(customMM.h)+" cm (personalizado)"};
     return FMT_MM[format];
+  }
+  // safe size label for any saved config (handles custom + legacy rows)
+  function fmtLabel(c){
+    if(!c||!c.format)return '—';
+    if(c.format==='custom')return (c.custom&&c.custom.w>0)?(fmtCm(c.custom.w)+' × '+fmtCm(c.custom.h)+' cm'):'Personalizado';
+    return FMT_MM[c.format]?FMT_MM[c.format].label:'—';
   }
   function applyCustomDims(){
     // keep on-screen aspect ratio identical to the real mm ratio so the PDF isn't distorted
@@ -1472,7 +1485,7 @@
         '<div class="d"><span>Nombre en tarjeta</span>'+esc(c.biz||'—')+'</div>'+
         '<div class="d"><span>Frase</span>'+esc(c.headline||'—')+'</div>'+
         '<div class="d"><span>Modo</span>'+esc(c.mode||'—')+'</div>'+
-        '<div class="d"><span>Tamaño</span>'+(c.format?FMT_MM[c.format].label:'—')+'</div>'+
+        '<div class="d"><span>Tamaño</span>'+fmtLabel(c)+'</div>'+
         '<div class="d"><span>Estrellas</span>'+(c.stars&&c.stars!=='0'?c.stars+'★':'Sin estrellas')+'</div>'+
         '<div class="d"><span>Tema</span><span class="swatch-mini" style="background:'+(th.accent||'#888')+'"></span>'+esc(th.name||'—')+'</div>'+
         '<div class="d"><span>Doble cara</span>'+(c.back!==false?'Sí':'No')+'</div>'+
@@ -1698,8 +1711,36 @@
   applyUrlState();
   applyFormat();applyMode();applyDestination();applyTheme(THEMES[themeIdx]);sync();
   window.addEventListener('resize',matchHeights);window.addEventListener('load',matchHeights);matchHeights();
+  /* ================= Print ================= */
+  // Presets print via the tuned @media-print scale hacks. Custom sizes need true
+  // physical dimensions, so print exact-size captures (one face per page) instead.
+  async function doPrint(){
+    if(format!=='custom'){window.print();return;}
+    var mm=curMM(),mount=document.getElementById('printMount');
+    mount.innerHTML='';
+    var frontImg=await captureCard(card);
+    var backImg=document.getElementById('backToggle').checked?await captureCard(cardBack):null;
+    async function addSheet(src){
+      var im=new Image();im.src=src;im.style.width=mm.w+'mm';im.style.height=mm.h+'mm';im.style.display='block';
+      try{await im.decode();}catch(e){}
+      var d=document.createElement('div');d.className='psheet';d.appendChild(im);mount.appendChild(d);
+    }
+    await addSheet(frontImg);if(backImg)await addSheet(backImg);
+    var st=document.getElementById('printPageStyle')||document.createElement('style');st.id='printPageStyle';
+    st.textContent='@media print{@page{size:'+mm.w+'mm '+mm.h+'mm;margin:0}}';document.head.appendChild(st);
+    document.body.classList.add('print-img');
+    window.addEventListener('afterprint',function cleanup(){
+      document.body.classList.remove('print-img');mount.innerHTML='';st.textContent='';
+      window.removeEventListener('afterprint',cleanup);
+    });
+    window.print();
+  }
+  document.getElementById('printBtn').addEventListener('click',function(){
+    doPrint().catch(function(e){alert('No se pudo imprimir: '+(e&&e.message?e.message:e));});
+  });
   sb.auth.getSession().then(function(res){ if(res.data && res.data.session) showApp(); else showLogin(); });
   sb.auth.onAuthStateChange(function(_evt,session){ if(!session) showLogin(); });
 </script>
+<div id="printMount" aria-hidden="true"></div>
 </body>
 </html>

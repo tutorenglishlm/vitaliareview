@@ -362,6 +362,21 @@
   .stat .l{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;margin-top:3px;font-weight:700}
   .crm-empty{text-align:center;color:var(--muted);padding:70px 20px;border:1.5px dashed var(--line2);border-radius:18px;background:var(--panel)}
   .crm-empty strong{color:var(--ink)}
+  /* template gallery */
+  .tpl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:6px 0 4px;max-height:56vh;overflow:auto;padding:2px}
+  @media(max-width:560px){.tpl-grid{grid-template-columns:1fr}}
+  .tpl-card{cursor:pointer;text-align:left;border:1px solid var(--line);border-radius:14px;padding:0;overflow:hidden;background:var(--panel);
+    box-shadow:var(--sh1);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+  .tpl-card:hover{transform:translateY(-2px);box-shadow:var(--sh2,0 10px 26px rgba(0,0,0,.14));border-color:var(--accent)}
+  .tpl-swatch{height:52px;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;color:#fff;font-family:"Fraunces",serif;font-size:14px}
+  .tpl-swatch .st{letter-spacing:1px;font-size:12px;opacity:.9}
+  .tpl-body{padding:11px 13px 13px}
+  .tpl-body .tn{font-weight:800;font-size:13.5px;color:var(--ink)}
+  .tpl-body .tp{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .tpl-body .tm{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:7px}
+  /* finanzas money accents */
+  .stat.money .n{color:var(--accent)}
+  .fin-amt{font-family:"Fraunces",serif;font-weight:700;color:var(--ink);white-space:nowrap}
   .crm-table{width:100%;border-collapse:separate;border-spacing:0 10px}
   .crm-table th{text-align:left;font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;
     font-weight:700;padding:0 16px 2px}
@@ -430,7 +445,7 @@
   /* ---------- Print ---------- */
   @media print{
     body{background:#fff}
-    .panel,.cap,.overlay,.toast,.topbar,#loginView,#crmView{display:none!important}
+    .panel,.cap,.overlay,.toast,.topbar,#loginView,#crmView,#finView{display:none!important}
     .wrap{display:block}
     .stage{padding:0;display:block}
     .card::before{display:none}
@@ -442,6 +457,11 @@
     .card .rim{border-radius:0}
     .card--back .back-logo{border-radius:0}
     .card .sheen{display:none}
+    /* kill blurred shadows/glow that Chrome rasterizes as dark rectangles on print */
+    .card .glow{display:none!important}
+    .card .logo{box-shadow:none!important}
+    .card .qr{box-shadow:none!important}
+    .card .action .badge{box-shadow:none!important}
     .card .head,.card .body,.card .foot{animation:none!important}
     .card{transform:scale(.68)!important}
     .face{width:204px}
@@ -478,6 +498,7 @@
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
       <button id="navCrm">CRM <span class="count" id="crmCount">0</span></button>
+      <button id="navFin">Finanzas</button>
     </nav>
     <div class="spacer"></div>
     <button class="out" id="logoutBtn">Salir</button>
@@ -543,7 +564,10 @@
         <!-- STEP 3 · Negocio -->
         <section class="step" data-title="Negocio">
           <h3 class="step-title">Datos del negocio</h3>
-          <p class="step-help">Escribe el nombre y una frase de invitación neutral.</p>
+          <p class="step-help">Escribe el nombre y una frase de invitación neutral. ¿Sin ideas? Empieza con una plantilla.</p>
+          <div class="group">
+            <button class="gen-btn" id="openTpl" style="width:100%;justify-content:center">✨ Elegir una plantilla</button>
+          </div>
           <div class="group">
             <label>Nombre del negocio</label>
             <input type="text" id="biz" value="La Mar de Cortés" />
@@ -720,14 +744,46 @@
       <div id="crmList"></div>
     </div>
   </div>
+
+  <!-- ---------- FINANZAS ---------- -->
+  <div id="finView" style="display:none">
+    <div class="crm">
+      <div class="crm-head">
+        <h2>Finanzas</h2>
+        <div class="spacer"></div>
+        <select class="crm-search" id="finPeriod" style="max-width:220px">
+          <option value="all">Todo el tiempo</option>
+          <option value="month" selected>Este mes</option>
+          <option value="year">Este año</option>
+        </select>
+      </div>
+      <div class="crm-stats" id="finStats"></div>
+      <div id="finList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Template gallery modal -->
+<div class="overlay" id="tplOverlay">
+  <div class="modal" style="max-width:640px">
+    <h3>Plantillas de tarjeta</h3>
+    <p>Elige un punto de partida. Se aplican la frase, las estrellas, el color y el formato — tu nombre de negocio y tu logo no se tocan.</p>
+    <div class="tpl-grid" id="tplGrid"></div>
+    <div class="m-actions">
+      <button class="modal-close" id="tplClose">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <!-- Maps link generator modal -->
 <div class="overlay" id="genOverlay">
   <div class="modal">
     <h3>Generar enlace de reseña</h3>
-    <p>Abre tu negocio en Google Maps, copia la URL completa (la de <code>/maps/place/…</code>) y pégala aquí.</p>
-    <input type="url" id="genInput" placeholder="https://www.google.com/maps/place/..." />
+    <p>Pega <strong>cualquier</strong> enlace de Google Maps del negocio: la URL larga de <code>/maps/place/…</code> o incluso el enlace corto para compartir (<code>maps.app.goo.gl/…</code>). Lo resolvemos por ti.</p>
+    <input type="url" id="genInput" placeholder="https://maps.app.goo.gl/… o https://www.google.com/maps/place/…" />
+    <div class="btns" style="margin-top:10px">
+      <button class="b-print" id="genResolve">✨ Generar enlace</button>
+    </div>
     <div class="err" id="genErr"></div>
     <div class="out" id="genOut"></div>
     <div class="m-actions">
@@ -753,7 +809,8 @@
         <option value="Entregado">Entregado</option>
       </select>
     </div>
-    <div class="fld"><label>Notas</label><textarea id="mNotes" placeholder="Cantidad, precio acordado, detalles…"></textarea></div>
+    <div class="fld"><label>Precio acordado (MXN)</label><input type="number" id="mPrice" min="0" step="1" placeholder="Ej. 350" /><p class="hint" style="margin-top:6px">Al marcar el proyecto como <strong>Entregado</strong>, este monto se suma a Finanzas.</p></div>
+    <div class="fld"><label>Notas</label><textarea id="mNotes" placeholder="Cantidad, detalles…"></textarea></div>
     <div class="m-actions">
       <button class="modal-close" id="crmModalClose">Cancelar</button>
       <button class="modal-use" id="crmModalSave">Guardar</button>
@@ -793,14 +850,17 @@
   document.getElementById('logoutBtn').onclick=async function(){ await sb.auth.signOut(); projectsCache=[]; document.getElementById('loginPass').value=''; showLogin(); };
 
   /* ================= Nav ================= */
-  var designerView=document.getElementById('designerView'), crmView=document.getElementById('crmView');
-  function showDesigner(){ designerView.style.display='block'; crmView.style.display='none';
-    document.getElementById('navDesign').classList.add('on'); document.getElementById('navCrm').classList.remove('on');
-    if(window.goStep) window.goStep(0); }
-  function showCrm(){ designerView.style.display='none'; crmView.style.display='block';
-    document.getElementById('navCrm').classList.add('on'); document.getElementById('navDesign').classList.remove('on'); reloadProjects(); }
+  var designerView=document.getElementById('designerView'), crmView=document.getElementById('crmView'), finView=document.getElementById('finView');
+  function setNav(id){['navDesign','navCrm','navFin'].forEach(function(n){document.getElementById(n).classList.toggle('on',n===id);});}
+  function showDesigner(){ designerView.style.display='block'; crmView.style.display='none'; finView.style.display='none';
+    setNav('navDesign'); if(window.goStep) window.goStep(0); }
+  function showCrm(){ designerView.style.display='none'; crmView.style.display='block'; finView.style.display='none';
+    setNav('navCrm'); reloadProjects(); }
+  function showFin(){ designerView.style.display='none'; crmView.style.display='none'; finView.style.display='block';
+    setNav('navFin'); reloadProjects().then(renderFin); }
   document.getElementById('navDesign').onclick=showDesigner;
   document.getElementById('navCrm').onclick=showCrm;
+  document.getElementById('navFin').onclick=showFin;
 
   function toast(msg){
     var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
@@ -1162,6 +1222,7 @@
   var currentProjectId=null;
   var projectsCache=[];
   function mapRow(r){return {id:r.id,client:r.client,contact:r.contact,status:r.status,notes:r.notes,
+    price:(r.price==null?0:Number(r.price)),
     config:r.config||{},createdAt:new Date(r.created_at).getTime(),updatedAt:new Date(r.updated_at).getTime()};}
   async function reloadProjects(){
     try{
@@ -1187,6 +1248,7 @@
     document.getElementById('mClient').value=(existing&&existing.client)||document.getElementById('biz').value||'';
     document.getElementById('mContact').value=existing?existing.contact||'':'';
     document.getElementById('mStatus').value=existing?existing.status||'En diseño':'En diseño';
+    document.getElementById('mPrice').value=(existing&&existing.price)?existing.price:'';
     document.getElementById('mNotes').value=existing?existing.notes||'':'';
     document.getElementById('crmModalTitle').textContent=existing?'Actualizar proyecto':'Enviar al CRM';
     crmOverlay.classList.add('show');
@@ -1213,6 +1275,7 @@
     var payload={client:document.getElementById('mClient').value.trim()||'(sin nombre)',
       contact:document.getElementById('mContact').value.trim(),
       status:document.getElementById('mStatus').value,
+      price:parseFloat(document.getElementById('mPrice').value)||0,
       notes:document.getElementById('mNotes').value.trim(),
       config:await uploadLogoIfNeeded(getConfig())};
     try{
@@ -1232,6 +1295,45 @@
 
   /* CRM render */
   function fmtDate(ts){var d=new Date(ts);return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});}
+  function fmtMoney(n){return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Number(n)||0);}
+
+  /* ================= Finanzas ================= */
+  function inPeriod(ts,period){
+    if(period==='all')return true;
+    var d=new Date(ts),now=new Date();
+    if(period==='year')return d.getFullYear()===now.getFullYear();
+    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); // month
+  }
+  function renderFin(){
+    var period=document.getElementById('finPeriod').value;
+    // revenue is booked when a project is Entregado; use its updated date as the delivery date
+    var delivered=projectsCache.filter(function(p){return p.status==='Entregado';});
+    var inRange=delivered.filter(function(p){return inPeriod(p.updatedAt||p.createdAt,period);});
+    var revenue=inRange.reduce(function(s,p){return s+(Number(p.price)||0);},0);
+    var pipeline=projectsCache.filter(function(p){return p.status!=='Entregado';})
+      .reduce(function(s,p){return s+(Number(p.price)||0);},0);
+    var avg=inRange.length?revenue/inRange.length:0;
+
+    document.getElementById('finStats').innerHTML=
+      '<div class="stat money"><div class="n">'+fmtMoney(revenue)+'</div><div class="l">Ingresos entregados</div></div>'+
+      '<div class="stat"><div class="n">'+inRange.length+'</div><div class="l">Proyectos entregados</div></div>'+
+      '<div class="stat"><div class="n">'+fmtMoney(avg)+'</div><div class="l">Ticket promedio</div></div>'+
+      '<div class="stat"><div class="n">'+fmtMoney(pipeline)+'</div><div class="l">Pipeline (sin entregar)</div></div>';
+
+    var box=document.getElementById('finList');
+    if(!inRange.length){box.innerHTML='<div class="crm-empty">Aún no hay ingresos en este periodo. Marca un proyecto como <strong>Entregado</strong> y ponle precio en el CRM para verlo aquí.</div>';return;}
+    var rows=inRange.sort(function(a,b){return (b.updatedAt||0)-(a.updatedAt||0);}).map(function(p){
+      var c=p.config||{};
+      var thumb=c.logo?'<div class="cthumb" style="background-image:url('+c.logo+')"></div>':'<div class="cthumb">'+initials(c.biz||p.client)+'</div>';
+      return '<tr class="crm-row">'+
+        '<td><div class="cclient">'+thumb+'<div><div class="cname">'+esc(p.client)+'</div><div class="cmeta">'+esc(c.biz||'')+'</div></div></div></td>'+
+        '<td><div class="cmeta">'+fmtDate(p.updatedAt||p.createdAt)+'</div></td>'+
+        '<td style="text-align:right"><span class="fin-amt">'+(p.price?fmtMoney(p.price):'—')+'</span></td></tr>';
+    }).join('');
+    box.innerHTML='<table class="crm-table"><thead><tr><th>Cliente</th><th>Entregado</th><th style="text-align:right">Monto</th></tr></thead><tbody>'+rows+
+      '<tr class="crm-row" style="font-weight:800"><td>Total</td><td></td><td style="text-align:right"><span class="fin-amt" style="color:var(--accent)">'+fmtMoney(revenue)+'</span></td></tr></tbody></table>';
+  }
+  document.getElementById('finPeriod').addEventListener('change',renderFin);
   function renderCrm(){
     var list=projectsCache;
     document.getElementById('crmCount').textContent=list.length;
@@ -1277,6 +1379,7 @@
         '<div class="d"><span>Estrellas</span>'+(c.stars&&c.stars!=='0'?c.stars+'★':'Sin estrellas')+'</div>'+
         '<div class="d"><span>Tema</span><span class="swatch-mini" style="background:'+(th.accent||'#888')+'"></span>'+esc(th.name||'—')+'</div>'+
         '<div class="d"><span>Doble cara</span>'+(c.back!==false?'Sí':'No')+'</div>'+
+        '<div class="d"><span>Precio</span>'+(p.price?fmtMoney(p.price):'—')+'</div>'+
         '<div class="d"><span>Creado</span>'+fmtDate(p.createdAt)+'</div>'+
         '<div class="d" style="grid-column:1/-1"><span>Notas</span>'+(esc(p.notes||'')||'—')+'</div>'+
       '</div></td></tr>';
@@ -1328,19 +1431,80 @@
   document.getElementById('genClose').onclick=function(){genOverlay.classList.remove('show');};
   genOverlay.addEventListener('click',function(e){if(e.target===genOverlay)genOverlay.classList.remove('show');});
   var genResult=null;
+  function genShow(link){var out=document.getElementById('genOut'),use=document.getElementById('genUse');
+    genResult=link;out.textContent=link;out.classList.add('show');use.style.display='block';}
+  function genReset(){document.getElementById('genErr').classList.remove('show');document.getElementById('genOut').classList.remove('show');
+    document.getElementById('genUse').style.display='none';genResult=null;}
+  function genError(msg){var err=document.getElementById('genErr');err.textContent=msg;err.classList.add('show');}
+  // Instant client-side extraction for full URLs; short links fall through to the server.
   document.getElementById('genInput').addEventListener('input',function(){
-    var err=document.getElementById('genErr'),out=document.getElementById('genOut'),use=document.getElementById('genUse');
-    err.classList.remove('show');out.classList.remove('show');use.style.display='none';genResult=null;
-    var raw=this.value.trim();if(!raw)return;
-    if(/maps\.app\.goo\.gl|goo\.gl\/maps/i.test(raw)){err.textContent="Ese es un enlace corto. Ábrelo en el navegador y pega aquí la URL completa (/maps/place/…).";err.classList.add('show');return;}
+    genReset();var raw=this.value.trim();if(!raw)return;
     var ref=extractRef(raw);
-    if(!ref){err.textContent="No se reconoció un ID de negocio. Copia la URL completa desde Google Maps.";err.classList.add('show');return;}
-    genResult=buildReviewLink(ref);out.textContent=genResult;out.classList.add('show');use.style.display='block';
+    if(ref) genShow(buildReviewLink(ref));
   });
+  document.getElementById('genResolve').onclick=async function(){
+    var raw=document.getElementById('genInput').value.trim();genReset();
+    if(!raw){genError("Pega un enlace de Google Maps primero.");return;}
+    var ref=extractRef(raw);
+    if(ref){genShow(buildReviewLink(ref));toast("Enlace generado ✓");return;}
+    var btn=this,old=btn.textContent;btn.textContent="Resolviendo…";btn.disabled=true;
+    try{
+      var r=await fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:raw})});
+      var data=await r.json();
+      if(r.ok&&data.link){genShow(data.link);toast("Enlace generado ✓");}
+      else genError((data&&data.error)||"No se pudo resolver el enlace. Abre el negocio en Google Maps y pega la URL de /maps/place/…");
+    }catch(e){genError("Sin conexión con el servidor. Prueba pegando la URL completa de /maps/place/…");}
+    finally{btn.textContent=old;btn.disabled=false;}
+  };
   document.getElementById('genUse').onclick=function(){
     if(!genResult)return;var link=document.getElementById('link');link.value=genResult;
     link.dispatchEvent(new Event('input'));genOverlay.classList.remove('show');toast("Enlace de reseña aplicado ✓");
   };
+
+  /* ================= Template gallery ================= */
+  // themeRef: index into THEMES. Applying a template sets phrase + stars + color + format + mode.
+  var TEMPLATES=[
+    {name:"Restaurante clásico", headline:"Cuéntanos cómo estuvo tu experiencia.", stars:"5", theme:0, format:"tall", mode:"both"},
+    {name:"Café / Postres",      headline:"¿Disfrutaste tu visita? Déjanos tu opinión.", stars:"5", theme:8, format:"cr80", mode:"both"},
+    {name:"Salón / Estética",    headline:"Nos encantaría conocer tu opinión.", stars:"5", theme:18, format:"tall", mode:"qr"},
+    {name:"Consultorio / Clínica",headline:"Ayúdanos a mejorar: comparte tu experiencia.", stars:"0", theme:4, format:"cr80", mode:"both"},
+    {name:"Taller / Servicio",   headline:"¿Cómo fue nuestro servicio? Déjanos una reseña.", stars:"0", theme:9, format:"cr80", mode:"tap"},
+    {name:"Boutique / Tienda",   headline:"Tu opinión nos ayuda a crecer.", stars:"5", theme:6, format:"tall", mode:"both"},
+    {name:"Hotel / Hospedaje",   headline:"Comparte cómo estuvo tu estancia.", stars:"5", theme:3, format:"tall", mode:"both"},
+    {name:"Minimal (solo QR)",   headline:"Escanea y déjanos tu reseña en Google.", stars:"0", theme:10, format:"cr80", mode:"qr"}
+  ];
+  var tplOverlay=document.getElementById('tplOverlay');
+  (function buildTpl(){
+    var grid=document.getElementById('tplGrid');
+    grid.innerHTML=TEMPLATES.map(function(t,i){
+      var th=THEMES[t.theme]||THEMES[0];
+      var st=t.stars&&t.stars!=='0'?('★'.repeat(parseInt(t.stars,10))):'sin estrellas';
+      var fmt=(t.format==='tall'?'Mesa':'NFC')+' · '+(t.mode==='qr'?'Solo QR':t.mode==='tap'?'Solo Tap':'QR+Tap');
+      return '<button class="tpl-card" data-tpl="'+i+'">'+
+        '<div class="tpl-swatch" style="background:'+th.swatch+'"><span class="st">'+st+'</span></div>'+
+        '<div class="tpl-body"><div class="tn">'+esc(t.name)+'</div><div class="tp">'+esc(t.headline)+'</div>'+
+        '<div class="tm">'+fmt+' · '+esc(th.name)+'</div></div></button>';
+    }).join('');
+  })();
+  function applyTemplate(t){
+    document.getElementById('headline').value=t.headline;
+    document.getElementById('stars').value=t.stars;
+    if(FMT_MM[t.format]){format=t.format;setSeg('format','fmt',format);applyFormat();}
+    mode=t.mode;setSeg('mode','mode',mode);applyMode();
+    var th=THEMES[t.theme]||THEMES[0];
+    document.querySelectorAll('#themes .chip').forEach(function(el){el.classList.remove('on');});
+    var presetChips=document.querySelectorAll('#themes .chip:not(#autoChip)');
+    if(presetChips[t.theme])presetChips[t.theme].classList.add('on');
+    themeIdx=t.theme;applyTheme(th);sync();
+  }
+  document.getElementById('openTpl').onclick=function(){tplOverlay.classList.add('show');};
+  document.getElementById('tplClose').onclick=function(){tplOverlay.classList.remove('show');};
+  tplOverlay.addEventListener('click',function(e){if(e.target===tplOverlay)tplOverlay.classList.remove('show');});
+  document.getElementById('tplGrid').addEventListener('click',function(e){
+    var b=e.target.closest('[data-tpl]');if(!b)return;
+    applyTemplate(TEMPLATES[parseInt(b.dataset.tpl,10)]);
+    tplOverlay.classList.remove('show');toast("Plantilla aplicada ✓");
+  });
 
   /* ================= NFC ================= */
   var nfcBtn=document.getElementById('nfcWrite'),nfcStatus=document.getElementById('nfcStatus');

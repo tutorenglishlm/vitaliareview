@@ -522,7 +522,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">V</span>
-      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b17</em></span>
+      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b18</em></span>
     </div>
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
@@ -697,6 +697,16 @@
               <button class="mini" id="applyCustom">Aplicar 2 colores</button>
             </div>
             <p class="hint" style="margin-top:8px">O elige un preset, deja que el logo genere el tema <strong>Auto</strong>, o combina fondo + acento. El QR siempre queda en alto contraste.</p>
+          </div>
+          <div class="group">
+            <label>Color del texto</label>
+            <div class="custom-color">
+              <label>Color <input type="color" id="textColor" value="#f6f7f9"></label>
+              <button class="mini" id="textAuto">Auto</button>
+              <button class="mini" id="textBlack">Negro</button>
+              <button class="mini" id="textWhite">Blanco</button>
+            </div>
+            <p class="hint" style="margin-top:8px">Cambia el color del nombre, la frase y el monograma. <strong>Auto</strong> usa el color del tema.</p>
           </div>
         </section>
 
@@ -1007,6 +1017,7 @@
       el.style.setProperty('--c-accent',t.accent);
       el.style.setProperty('--c-accent-rgb',toRgbStr(t.accent));
     });
+    if(typeof textColor!=='undefined'&&textColor)cards.forEach(function(el){el.style.setProperty('--c-ink',textColor);});
     renderQR(targetUrl());
   }
   (function buildThemes(){
@@ -1063,6 +1074,19 @@
   document.getElementById('starGold').onclick=function(){applyStarColor('#fbbc05');};
   document.getElementById('starBlack').onclick=function(){applyStarColor('#111111');};
   document.getElementById('starWhite').onclick=function(){applyStarColor('#ffffff');};
+
+  /* ---- Text color (overrides the theme's ink; 'Auto' restores it) ---- */
+  var textColor='';
+  function applyTextColor(c){textColor=c||'';
+    cards.forEach(function(el){
+      if(textColor)el.style.setProperty('--c-ink',textColor);
+      else if(currentTheme)el.style.setProperty('--c-ink',currentTheme.ink);
+    });
+    var inp=document.getElementById('textColor');if(/^#[0-9a-fA-F]{6}$/.test(textColor))inp.value=textColor;}
+  document.getElementById('textColor').addEventListener('input',function(){applyTextColor(this.value);});
+  document.getElementById('textAuto').onclick=function(){applyTextColor('');};
+  document.getElementById('textBlack').onclick=function(){applyTextColor('#111111');};
+  document.getElementById('textWhite').onclick=function(){applyTextColor('#ffffff');};
 
   /* auto theme from logo */
   function rgbToHsl(r,g,b){
@@ -1400,7 +1424,7 @@
       urlFoot:document.getElementById('urlFoot').value,titleFont:titleFont,
       biz:document.getElementById('biz').value,headline:document.getElementById('headline').value,
       link:document.getElementById('link').value,stars:document.getElementById('stars').value,
-      back:document.getElementById('backToggle').checked,theme:currentTheme,starColor:starColor,logo:currentLogoData||null};
+      back:document.getElementById('backToggle').checked,theme:currentTheme,starColor:starColor,textColor:textColor,logo:currentLogoData||null};
   }
   function setSeg(groupId,attr,val){
     document.querySelectorAll('#'+groupId+' button').forEach(function(b){b.classList.toggle('on',b.dataset[attr]===val);});
@@ -1433,6 +1457,7 @@
     applyFormat();applyMode();applyDestination();applyTitleFont();
     if(c.theme)applyTheme(c.theme);
     applyStarColor(c.starColor||'');
+    applyTextColor(c.textColor||'');
     sync();
   }
 
@@ -1450,6 +1475,7 @@
     p.set('stars',document.getElementById('stars').value||'0');
     p.set('tf',titleFont);
     if(starColor)p.set('sc',starColor);
+    if(textColor)p.set('tc',textColor);
     p.set('back',document.getElementById('backToggle').checked?'1':'0');
     return location.origin+location.pathname+'?'+p.toString();
   }
@@ -1472,6 +1498,7 @@
     if(p.has('stars'))document.getElementById('stars').value=p.get('stars');
     if(p.has('tf')){titleFont=p.get('tf');document.getElementById('titleFont').value=titleFont;}
     if(p.has('sc'))applyStarColor(p.get('sc'));
+    if(p.has('tc'))applyTextColor(p.get('tc'));
     if(p.has('back')){var bk=p.get('back')!=='0';document.getElementById('backToggle').checked=bk;document.body.classList.toggle('hide-back',!bk);}
     if(p.has('mode')){mode=p.get('mode');setSeg('mode','mode',mode);}
   }

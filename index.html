@@ -245,12 +245,12 @@
     --logo:62px; --mono-fs:25px; --biz-fs:26px; --stars-fs:16px;
     --headline-fs:17px; --qr-size:140px;
   }
-  /* Media carta preset (13.97×21.59cm). Preview kept moderate; captureCard boosts
-     the scale to hit ~600dpi at the real (large) size so it prints sharp. */
+  /* Media carta preset (13.97×21.59cm). Rendered at REAL size in px (528×816 = 139.7×215.9mm
+     at 96dpi) so it prints 1:1 from the DOM (vector-sharp, no capture). */
   .card.fmt-media{
-    --cardw:360px; --cardh:556px; --pad:30px 28px 24px;
-    --logo:66px; --mono-fs:26px; --biz-fs:27px; --stars-fs:17px;
-    --headline-fs:18px; --qr-size:150px;
+    --cardw:528px; --cardh:816px; --pad:44px 41px 35px;
+    --logo:97px; --mono-fs:38px; --biz-fs:40px; --stars-fs:25px;
+    --headline-fs:26px; --qr-size:214px;
   }
   .card::before{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
     background-image:
@@ -491,6 +491,13 @@
     .face:has(.fmt-tall){width:324px}
     .face--back{page-break-before:auto;break-before:auto}
     @page{size:landscape;margin:6mm}
+    /* Media carta: real-size DOM printed vector-sharp, one face per PORTRAIT page. */
+    @page mediaP{size:portrait;margin:8mm}
+    body.printing-media .stage{page:mediaP}
+    body.printing-media .faces{display:block!important}
+    body.printing-media .face{display:block!important;width:auto!important;page:mediaP;text-align:center;margin:0 auto}
+    body.printing-media .face--back{break-before:page;page-break-before:always}
+    body.printing-media .fmt-media.card{transform:none!important;margin:0 auto}
   }
 </style>
 </head>
@@ -515,7 +522,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">V</span>
-      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b15</em></span>
+      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b16</em></span>
     </div>
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
@@ -1827,9 +1834,18 @@
   // stylesheet (gated by body.printing-cards) so they engage reliably; only the body class
   // + overlay images are set in JS, then plain window.print().
   async function doPrint(){
-    // Large cards (media carta, legacy custom) print as baked images on landscape pages.
+    // Media carta prints the DOM directly at real size, vector-sharp (no capture, no canvas
+    // blur), one face per PORTRAIT page via a named @page. Cheap and always crisp.
+    if(format==='media'){
+      function cm(){document.body.classList.remove('printing-media');window.removeEventListener('afterprint',cm);}
+      window.addEventListener('afterprint',cm);
+      document.body.classList.add('printing-media');
+      window.print();
+      return;
+    }
     // Small presets (cr80, tall) keep the original @media-print scale hacks.
-    if(format!=='custom'&&format!=='media'){window.print();return;}
+    if(format!=='custom'){window.print();return;}
+    // Legacy custom sizes: baked images on landscape pages.
     var imgs=[await captureCard(card)];
     if(document.getElementById('backToggle').checked)imgs.push(await captureCard(cardBack));
     var ov=document.getElementById('printOverlay');

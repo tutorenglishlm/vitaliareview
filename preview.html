@@ -453,6 +453,7 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ---------- Print ---------- */
+  #printOverlay{display:none}
   @media print{
     body{background:#fff}
     .panel,.cap,.overlay,.toast,.topbar,#loginView,#crmView,#finView{display:none!important}
@@ -1786,39 +1787,31 @@
   window.addEventListener('resize',matchHeights);window.addEventListener('load',matchHeights);matchHeights();
   /* ================= Print ================= */
   // Presets print via the tuned @media-print scale hacks. Custom sizes print exact-size
-  // captures inside a dedicated iframe with its own @page — this reliably kills the
-  // browser's header/footer + margins and prints at true physical size, one face per page.
+  // captures into a full-page overlay in THIS document, with an injected @page (size +
+  // margin:0) that overrides the preset landscape rule — kills the browser header/footer
+  // and margins and prints at true physical size, one face per page. (Verified: an iframe
+  // with visibility:hidden prints the parent instead, so we stay in-document.)
   async function doPrint(){
     if(format!=='custom'){window.print();return;}
     var mm=curMM();
     var imgs=[await captureCard(card)];
     if(document.getElementById('backToggle').checked)imgs.push(await captureCard(cardBack));
-    var html='<!doctype html><html><head><meta charset="utf-8"><style>'
-      +'@page{size:'+mm.w+'mm '+mm.h+'mm;margin:0}'
-      +'html,body{margin:0;padding:0;background:#fff}'
-      +'.pg{width:'+mm.w+'mm;height:'+mm.h+'mm;overflow:hidden;page-break-after:always;break-after:page}'
-      +'.pg:last-child{page-break-after:auto;break-after:auto}'
-      +'img{width:'+mm.w+'mm;height:'+mm.h+'mm;display:block}'
-      +'</style></head><body>'
-      +imgs.map(function(s){return '<div class="pg"><img src="'+s+'"></div>';}).join('')
-      +'</body></html>';
-    var ifr=document.createElement('iframe');
-    ifr.setAttribute('aria-hidden','true');
-    ifr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
-    document.body.appendChild(ifr);
-    var d=ifr.contentWindow.document;d.open();d.write(html);d.close();
-    function fire(){
-      try{ifr.contentWindow.focus();ifr.contentWindow.print();}catch(e){}
-      setTimeout(function(){ifr.parentNode&&ifr.parentNode.removeChild(ifr);},2000);
-    }
-    // wait for the sheet images to finish decoding, then print
-    var list=d.images,total=list.length,done=0,fired=false;
-    function one(){ if(++done>=total&&!fired){fired=true;fire();} }
-    if(total===0){fire();return;}
-    for(var i=0;i<total;i++){var im=list[i];
-      if(im.complete)one();
-      else{im.onload=one;im.onerror=one;}}
-    setTimeout(function(){if(!fired){fired=true;fire();}},2500); // safety net
+    var ov=document.getElementById('printOverlay');
+    ov.innerHTML=imgs.map(function(s){return '<div class="pg"><img src="'+s+'"></div>';}).join('');
+    try{await Promise.all([].map.call(ov.querySelectorAll('img'),function(im){return im.decode();}));}catch(e){}
+    var st=document.getElementById('printPageStyle')||document.createElement('style');st.id='printPageStyle';
+    st.textContent='@media print{'
+      +'body.printing-custom .wrap{display:none!important}'
+      +'body.printing-custom #printOverlay{display:block!important}'
+      +'#printOverlay .pg{width:'+mm.w+'mm;height:'+mm.h+'mm;overflow:hidden;page-break-after:always;break-after:page}'
+      +'#printOverlay .pg:last-child{page-break-after:auto;break-after:auto}'
+      +'#printOverlay img{width:'+mm.w+'mm;height:'+mm.h+'mm;display:block}'
+      +'@page{size:'+mm.w+'mm '+mm.h+'mm;margin:0}}';
+    document.head.appendChild(st);
+    document.body.classList.add('printing-custom');
+    function cleanup(){document.body.classList.remove('printing-custom');ov.innerHTML='';st.textContent='';window.removeEventListener('afterprint',cleanup);}
+    window.addEventListener('afterprint',cleanup);
+    window.print();
   }
   document.getElementById('printBtn').addEventListener('click',function(){
     var b=this,o=b.textContent;b.textContent='Preparando…';b.disabled=true;
@@ -1828,5 +1821,6 @@
   sb.auth.getSession().then(function(res){ if(res.data && res.data.session) showApp(); else showLogin(); });
   sb.auth.onAuthStateChange(function(_evt,session){ if(!session) showLogin(); });
 </script>
+<div id="printOverlay" aria-hidden="true"></div>
 </body>
 </html>

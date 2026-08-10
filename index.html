@@ -220,7 +220,7 @@
     --cardw:300px; --cardh:475px; --pad:22px 20px 18px;
     --logo:52px; --mono-fs:21px; --biz-fs:22px; --stars-fs:15px;
     --headline-fs:14px; --qr-size:124px;
-    --c-bg:#101418; --c-ink:#f6f7f9; --c-mut:#9aa2ad; --c-accent:#c9a24b;
+    --c-bg:#101418; --c-ink:#f6f7f9; --c-mut:#9aa2ad; --c-accent:#c9a24b; --c-accent-rgb:201,162,75;
     width:var(--cardw);height:var(--cardh);
     color:var(--c-ink);
     background:
@@ -265,7 +265,7 @@
   .head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px}
   .logo{width:var(--logo);height:var(--logo);border-radius:16px;flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;overflow:hidden;
-    background:linear-gradient(155deg, color-mix(in srgb,var(--c-accent) 26%, transparent), rgba(255,255,255,.04));
+    background:linear-gradient(155deg, rgba(var(--c-accent-rgb),.26), rgba(255,255,255,.04));
     box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 8px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
     background-size:cover;background-position:center}
   .logo .mono{font-family:var(--font-title,"Fraunces",serif);font-weight:600;font-size:var(--mono-fs);color:var(--c-ink);letter-spacing:.02em}
@@ -315,9 +315,9 @@
   .card.mode-tap .tapbig{display:flex}
   .tapbig{display:none;flex-direction:column;align-items:center;gap:14px}
   .tapbig .ripple{width:96px;height:96px;border-radius:50%;position:relative;
-    background:radial-gradient(circle at 50% 40%, color-mix(in srgb,var(--c-accent) 92%, white), var(--c-accent));
+    background:radial-gradient(circle at 50% 40%, rgba(255,255,255,.16), rgba(255,255,255,0) 70%), var(--c-accent);
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 10px 30px color-mix(in srgb,var(--c-accent) 45%, transparent)}
+    box-shadow:0 10px 30px rgba(var(--c-accent-rgb),.45)}
   .tapbig .ripple::before,.tapbig .ripple::after{content:"";position:absolute;inset:0;border-radius:50%;
     border:2px solid var(--c-accent);animation:ping 2.2s ease-out infinite}
   .tapbig .ripple::after{animation-delay:1.1s}
@@ -343,7 +343,7 @@
     display:flex;align-items:center;justify-content:center;
     background-size:contain;background-repeat:no-repeat;background-position:center}
   .back-logo:not(.has-img){
-    background:linear-gradient(155deg,color-mix(in srgb,var(--c-accent) 26%,transparent),rgba(255,255,255,.05));
+    background:linear-gradient(155deg,rgba(var(--c-accent-rgb),.26),rgba(255,255,255,.05));
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
   .back-logo .mono{font-family:var(--font-title,"Fraunces",serif);font-weight:600;color:var(--c-ink);
     font-size:clamp(70px,24vw,120px);letter-spacing:.02em}
@@ -508,7 +508,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">V</span>
-      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b12</em></span>
+      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b13</em></span>
     </div>
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
@@ -961,6 +961,16 @@
   var autoTheme=null;
   var currentTheme=THEMES[0];
 
+  // hex/rgb() → "r,g,b" so we can use rgba(var(--c-accent-rgb),a) instead of color-mix()
+  // (html2canvas 1.4.1 can't parse color-mix and errors on PDF/print for no-logo cards)
+  function toRgbStr(c){
+    c=(c||'').trim();
+    var m=c.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+    if(m){var h=m[1];if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+      return parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16);}
+    var r=c.match(/rgba?\(([^)]+)\)/);if(r){var p=r[1].split(',');return (parseInt(p[0])||0)+','+(parseInt(p[1])||0)+','+(parseInt(p[2])||0);}
+    return '201,162,75';
+  }
   function applyTheme(t){
     currentTheme=t;
     cards.forEach(function(el){
@@ -968,6 +978,7 @@
       el.style.setProperty('--c-ink',t.ink);
       el.style.setProperty('--c-mut',t.mut);
       el.style.setProperty('--c-accent',t.accent);
+      el.style.setProperty('--c-accent-rgb',toRgbStr(t.accent));
     });
     renderQR(targetUrl());
   }

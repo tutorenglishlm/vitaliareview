@@ -245,6 +245,13 @@
     --logo:62px; --mono-fs:25px; --biz-fs:26px; --stars-fs:16px;
     --headline-fs:17px; --qr-size:140px;
   }
+  /* Media carta preset (13.97×21.59cm). Preview kept moderate; captureCard boosts
+     the scale to hit ~600dpi at the real (large) size so it prints sharp. */
+  .card.fmt-media{
+    --cardw:360px; --cardh:556px; --pad:30px 28px 24px;
+    --logo:66px; --mono-fs:26px; --biz-fs:27px; --stars-fs:17px;
+    --headline-fs:18px; --qr-size:150px;
+  }
   .card::before{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
     background-image:
       repeating-linear-gradient(45deg, rgba(255,255,255,.028) 0 1px, transparent 1px 11px),
@@ -508,7 +515,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">V</span>
-      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b13</em></span>
+      <span class="brand-txt"><b>VITALIA</b><em>Review Cards · b14</em></span>
     </div>
     <nav class="nav">
       <button id="navDesign" class="on">Diseñador</button>
@@ -540,9 +547,9 @@
             <div class="seg" id="format">
               <button data-fmt="cr80" class="on">NFC · 54×85.6 mm</button>
               <button data-fmt="tall">Tent · 85.6×122 mm</button>
-              <button data-fmt="custom">Personalizado</button>
+              <button data-fmt="media">Media carta</button>
             </div>
-            <p class="hint" style="margin-top:8px"><strong>NFC</strong> = tarjeta estándar (CR80), la del chip. <strong>Tent</strong> = tarjeta grande de mesa. <strong>Personalizado</strong> = tú defines las medidas.</p>
+            <p class="hint" style="margin-top:8px"><strong>NFC</strong> = tarjeta estándar (CR80), la del chip. <strong>Tent</strong> = tarjeta grande de mesa. <strong>Media carta</strong> = 13.97 × 21.59 cm (media hoja carta).</p>
             <div id="customSize" style="display:none;margin-top:14px">
               <label style="font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;font-weight:700;display:block;margin-bottom:9px">Medidas en centímetros</label>
               <div style="display:flex;align-items:center;gap:9px">
@@ -1066,7 +1073,8 @@
   /* ================= Format ================= */
   var format="cr80";
   var FMT_MM={cr80:{w:54,h:85.6,label:"54 × 85.6 mm (tarjeta NFC estándar)"},
-              tall:{w:85.6,h:122,label:"85.6 × 122 mm (tarjeta de mesa)"}};
+              tall:{w:85.6,h:122,label:"85.6 × 122 mm (tarjeta de mesa)"},
+              media:{w:139.7,h:215.9,label:"13.97 × 21.59 cm (media carta)"}};
   var customMM={w:139.7,h:215.9};                 // stored in mm; UI is cm (×10)
   function fmtCm(mm){return (mm/10).toFixed(2).replace(/\.?0+$/,'');}
   function curMM(){
@@ -1101,7 +1109,7 @@
   });
   function applyFormat(){
     document.getElementById('customSize').style.display=format==='custom'?'block':'none';
-    cards.forEach(function(el){el.classList.remove('fmt-cr80','fmt-tall','fmt-custom');el.classList.add('fmt-'+format);});
+    cards.forEach(function(el){el.classList.remove('fmt-cr80','fmt-tall','fmt-media','fmt-custom');el.classList.add('fmt-'+format);});
     applyCustomDims();
     document.getElementById('sizeCap').textContent="Al exportar sale a "+curMM().label+". El PDF incluye sangrado y marcas de corte.";
     matchHeights();
@@ -1289,13 +1297,11 @@
   async function captureCard(el){
     el.classList.add('capturing');
     try{
-      // Custom cards preview small (~500px) but print LARGE, so 5x is only ~290dpi (blurry).
-      // Scale up to hit ~600dpi at the real physical size (capped so we don't blow up memory).
-      var scale=5;
-      if(format==='custom'){
-        var mm=curMM(),longestMM=Math.max(mm.w,mm.h),longestPx=Math.max(el.offsetWidth,el.offsetHeight)||500;
-        scale=Math.max(5,Math.min(9,(longestMM/25.4)*600/longestPx));
-      }
+      // Bigger cards preview small relative to their real size, so a flat 5x is low-dpi
+      // (media carta at 5x ≈ 290dpi = blurry). Scale to target ~600dpi at the real physical
+      // size (capped 5..9). Small presets clamp to 5. Applies to all formats.
+      var mm=curMM(),longestMM=Math.max(mm.w,mm.h),longestPx=Math.max(el.offsetWidth,el.offsetHeight)||500;
+      var scale=Math.max(5,Math.min(9,(longestMM/25.4)*600/longestPx));
       // imageTimeout so a slow/CORS logo can't hang the capture; hard race timeout as backstop.
       var canvas=await Promise.race([
         html2canvas(el,{scale:scale,backgroundColor:null,useCORS:true,logging:false,imageTimeout:4000}),
@@ -1820,7 +1826,9 @@
   // stylesheet (gated by body.printing-cards) so they engage reliably; only the body class
   // + overlay images are set in JS, then plain window.print().
   async function doPrint(){
-    if(format!=='custom'){window.print();return;}
+    // Large cards (media carta, legacy custom) print as baked images on landscape pages.
+    // Small presets (cr80, tall) keep the original @media-print scale hacks.
+    if(format!=='custom'&&format!=='media'){window.print();return;}
     var imgs=[await captureCard(card)];
     if(document.getElementById('backToggle').checked)imgs.push(await captureCard(cardBack));
     var ov=document.getElementById('printOverlay');
